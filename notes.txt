@@ -1,0 +1,33 @@
+syntax changes ( for [ and vice versa, {}, etc
+no subroutines, only function - copies made for safe handling, bundle into list and unbundle - needed careful inspection of interface for intent(inout/out) and names
+when you set x(:)=0 in f90 but it is just x=0 R will overwrite as scalar, care needed with initialise
+recreate simple intrinsics MAX, MIN, MERGE, MATMUL rather than modify code - there was considerable complication in handling of scalars/vectors/arrays - this was a good move as the complexity is tucked away in those functions
+named loop made a while loop - no impact
+formatted write is different write(*,'(a)') becomes write(paste(),file=xx,append=TRUE)
+no goto, so needs minor changes to flow exception handling, manually inserted returns but not complete return object
+no allocate statement required - use assignment
+no deallocate it is semi-automatic with garbage collection memory management in R
+CONTAIN functions utilise scope outside function, e.g. updateBest has fBest, scope rules are different in R and needed interface change
+CAsE sEnsitIVE - numerous minor differences that needed to be ironed out, e.g. xOldBest
+Youwei has some redundant code - diag_mat diag_ele - interface not needed
+careful in R with vectors vs matrices, e.g. MERGE can have scalar input for value or array input for value
+global variable "set" R uses <<- operator to mimic this approach
+no derived types, use an instance of a list as a template
+USE from module - just access all variables, not limited to USE - also why have constants that are not used (zero, one, HUGE, etc)?? (I hypocritically did also not revert to consistently using from the constant module, but then I am not publishing the code)
+a few instances of if(x==0.0_rk) changed to if(abs(x)<0.00001) - not going to rely on matching
+(:,3) becomes [ ,3] in R
+thankfully no zero indexed arrays
+array shape matching via arguments, MERGE(1,0,as=BF) where 1 is actually an array of same shape as, ont a scalar
+where statement changed to ind=which() with array subsetting
+careful on i+1:n should be (i+1):n in R
+optional arguments to functions needed care, use =NULL and then mimiced PRESENT function instead of if.null()
+my SUB2FUNC conversion used tmp variable, but in one spot I used tmp.out because tmp already in use 
+line 572 used n as a loop counter - no impact, but not a great choice
+was difficult to make MIN() MAX() accept any number of inputs but also that output is elementwise
+
+
+***err<EPS *** major difference, it seems R precision maxes out at 1e-11 or thereabouts. This is because of not using _rk throughout and I am not sure how to enforce this in R. Thus I made it tap out at 1e-11, which was EPS^0.65 - by calibration.  I also put a max iteration of 1000 (thankfully not hit for rosenbrock case) so that it does not get stuck in an infinite loop because I did not get the threshold right. As a result of this there is a difference in the convergence pattern and a total number of function calls. 
+
+BUG fixed in QR function with out of bounds on last two lines of loop - needs an if k+1>n
+
+
