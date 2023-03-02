@@ -6,26 +6,23 @@ devtools::load_all()
 
 ################################################################
 
-objFunc = function(x,stateVal,obsQ,nWarmUp,rain,pet){
+simFunc = function(params,stateVal,nWarmUp,rain,pet){
 
-  #time for evaluating
-  timeObj = vector(length=2)
   #Hymod Parameters and states
-  S = vector(length=length(x))
+  S = vector(length=length(params))
 
-  procnam="ObjFunc"
+#  procnam="ObjFunc"
   message = ''
   error = 0
   #---
   #
-  timeObj[1] = Sys.time()
   flexS=TRUE         # Allow fix of Smax
   #Assign parameters
-  Smax=x[1]            # Maximum storage capacity
-  b=x[2]               # Degree of spatial variability of the soil moisture capacity
-  alpha=x[3]           # Factor distributing the flow between slow and quick release reservoirs
-  Ks=x[4]              # Residence time of the slow release reservoir
-  Kq=x[5]              # Residence time of the quick release reservoir
+  Smax=params[1]            # Maximum storage capacity
+  b=params[2]               # Degree of spatial variability of the soil moisture capacity
+  alpha=params[3]           # Factor distributing the flow between slow and quick release reservoirs
+  Ks=params[4]              # Residence time of the slow release reservoir
+  Kq=params[5]              # Residence time of the quick release reservoir
 
   # Initialize surfacewater storages and baseflowstorage, and the initial storage of C1,C2,C3
   S[1]=stateVal[1];S[2]=stateVal[2];S[3]=stateVal[3];S[4]=stateVal[4]; S[5]=stateVal[5]
@@ -42,12 +39,13 @@ objFunc = function(x,stateVal,obsQ,nWarmUp,rain,pet){
     if(S[1]>Smax){S[1]=Smax}
   }
 
-  nSim = length(obsQ)
+  nSim = length(rain)
 
   Qvec = vector(length = nSim)
 
   for (i in 1:nSim){
-    qsimf<-.Fortran("hymod_f90_test",
+
+    qsimf<-.Fortran("hymod_f90",
                     precip=as.double(rain[i]), pet=as.double(pet[i]), S=as.double(S), Smax=as.double(Smax), b=as.double(b), alpha=as.double(alpha), Ks=as.double(Ks), Kq=as.double(Kq),
                     Qs=as.double(1), Qq=as.double(1), Q=as.double(1),
                     err = as.integer(1))
@@ -55,15 +53,7 @@ objFunc = function(x,stateVal,obsQ,nWarmUp,rain,pet){
     S = qsimf$S
   }
 
-  r = (obsQ-Qvec)[nWarmUp:nSim] # account for warmup period
-  f = sum(r^2)
-  f = f/2.0
-  timeObj[2] = Sys.time()
-  timeFunc=timeObj[2]-timeObj[1]
-
-  outObjFunc = list(r=r, f=f, timeFunc=timeFunc, error=error, message=message)
-
-  return(outObjFunc)
+  return(Qvec[nWarmUp:nSim])
 
 }
 
@@ -164,8 +154,8 @@ testRGN=function(){
   # key input parameters: p is the number of parameters to be optimized
   #                       n is the number of residuals
 
-  tmp= rgn(objFunc=objFunc, p=p, n=nData-nWarmUp+1, x0=x0, xLo=xLo, xHi=xHi, cnv=cnv, x=x, info=info, error=error, message=message,
-           stateVal=stateVal, obsQ=obsQ, nWarmUp=nWarmUp,rain=rain,pet=pet) #SUB2FUNC conversion
+  tmp= rgn(simFunc=simFunc, p=p, n=nData-nWarmUp+1, x0=x0, xLo=xLo, xHi=xHi, cnv=cnv, x=x, info=info, error=error, message=message,
+           stateVal=stateVal, target=obsQ[nWarmUp:nData], nWarmUp=nWarmUp,rain=rain,pet=pet) #SUB2FUNC conversion
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
 
   if(error != 0){

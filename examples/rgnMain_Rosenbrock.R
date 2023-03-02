@@ -46,7 +46,7 @@ testRGN=function(){
   #
   # key input parameters: p is the number of parameters to be optimized
   #                       n is the number of residuals
-  tmp= rgn(objFunc=objFunc, p=2, n=2, x0=x0, xLo=xLo, xHi=xHi, cnv=cnv, x=x, info=info, error=error, message=message) #SUB2FUNC conversion
+  tmp= rgn(simFunc=simFunc, p=2, n=2, x0=x0, xLo=xLo, xHi=xHi, cnv=cnv, x=x, target=c(0,0), info=info, error=error, message=message) #SUB2FUNC conversion
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
 
   if(error != 0){
@@ -61,21 +61,12 @@ testRGN=function(){
   print(paste("CPU time:                ",info$cpuTime))
 } #END PROGRAM testRGN
 
-objFunc=function(x){
-  #
-  #time for evaluating
-  timeObj=rep(0,2)
-  timeObj[1]=Sys.time()
-  f = 0.0; r=rep(0,2)
-  r[1] = 1.0-x[1]
-  r[2]=10.0*(x[2]-x[1]**2)                      # Compute residual
-  f = f + r[1]**2+r[2]**2                          # Calculate objective function
-  f = f/2.0
-  print(paste(f,paste(x,collapse=" ")))  # MLHack
-  timeObj[2]=Sys.time()
-  timeFunc=timeObj[2]-timeObj[1] #############timeFunc not returned at present, need to implement a list and then extract f, timeFunc
-  return(list(f=f,r=r,timeFunc=timeFunc,error=0,message="ok"))
-} #END objFunc
+simFunc=function(params){
+  r=rep(0,2)
+  r[1] = 1.0-params[1]
+  r[2]=10.0*(params[2]-params[1]**2)                      # Compute residual
+  return(r)
+} #END simFunc
 
 
 testRGN() # call main program
