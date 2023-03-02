@@ -25,7 +25,7 @@
 
 !   CONTAINS
 
-   SUBROUTINE Hymod_F90_test (precip, pet, S, &
+   SUBROUTINE hymod_f90 (precip, pet, S, &
                      Smax, b, alpha, Ks, Kq, Qs, Qq, Q, err)
 
    use constantsMod,only:mrk, mik, isoil,iqk1, islo
@@ -85,56 +85,9 @@
    CALL nashCascade(S(islo:islo),Ks,Us,Qs)  ! slow flow (single linear reservoir)
    Q=Qs+Qq
 
-      END SUBROUTINE Hymod_F90_test
+      END SUBROUTINE hymod_f90
 
 
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-   ! Daily HYMOD model
-   SUBROUTINE Hymod_F90 (precip, pet, S, &
-                     Smax, b, alpha, Ks, Kq, Qs, Qq, Q, err, message)
-   use constantsMod,only:mrk, mik, isoil, iqk1, islo
-   IMPLICIT NONE
-
-   INTERFACE
-   SUBROUTINE nashCascade(S,k,Vin,Vout)
-   use constantsMod,only:mrk, mik
-   REAL(mrk),INTENT(inout)::S(:)
-   REAL(mrk),INTENT(in)::k
-   REAL(mrk),INTENT(in)::Vin
-   REAL(mrk),INTENT(out)::Vout
-   END SUBROUTINE nashCascade
-    END INTERFACE
-
-   !dummy parameters
-   REAL(mrk),INTENT(inout)::S(:)                ! states
-   REAL(mrk),INTENT(in):: precip, pet           ! forcings
-   REAL(mrk),INTENT(in)::Smax,b,alpha,Ks,Kq     ! parameters
-   REAL(mrk),INTENT(out)::Qs,Qq,Q               ! responses
-   INTEGER(mik),INTENT(inout)::err
-   CHARACTER(*),INTENT(inout)::message
-   !local parameters
-   CHARACTER(*),PARAMETER::procnam="evolveHYMOD"
-   REAL(mrk)::Uo,Uq,Us,Ue
-   ! Start procedure here
-!    CALL checkFeasHYMOD(S,Smax,err,message)
-!    IF(err/=0)THEN
-!       message="f-"//procnam//"/&"//message; RETURN
-!    ENDIF
-   !The first part is to calculate the sum of direct flow and saturated flow,U0
-   CALL PDM(S(isoil),Smax,b,precip,Uo,err,message)
-   IF(err/=0)THEN
-      message="f-"//procnam//"/&"//message; RETURN
-   ENDIF
-   Ue=pet                                       !     - ET at max (eg, Wagener HESS)
-   Ue=min(Ue,S(isoil))
-   S(isoil)=S(isoil)-Ue                         !       final soil storage
-   Uq=alpha*Uo; Us=Uo-Uq                        ! *** quick vs slow flow routing
-   CALL nashCascade(S(iqk1:),Kq,Uq,Qq)      ! quick flow (Cascade Of The Nash)
-   CALL nashCascade(S(islo:islo),Ks,Us,Qs)  ! slow flow (single linear reservoir)
-   Q=Qs+Qq
-   END SUBROUTINE Hymod_F90
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
