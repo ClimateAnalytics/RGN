@@ -134,8 +134,8 @@ MERGE=function(A,val,mask){
   if(length(ind)>0) A.arr[ind]=val.arr[ind]
   return(A.arr)
 }
-MAXVAL=function(A){max(A)}
-MINVAL=function(A){min(A)}
+MAXVAL=function(A,mask){max(A[mask])}
+MINVAL=function(A,mask){min(A[mask])}
 MIN=function(...){
   dots=list(...) # capture the list of inputs
   n=length(dots)
@@ -223,7 +223,7 @@ goto1=function(procnam){
 
 #
 # Robust Gauss-Newton code based on Qin2018a
-rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=NULL){
+rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=NULL, ...){
   # input objFunc - function pointer to objective function
   # input real: p        # Number of parameters
   # input real: n        # Number of observations in calibration
@@ -320,7 +320,7 @@ rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=
   info$termFlag = 0; info$nEval = 0
   time[1]=Sys.time()
   x = x0
-  tmp=objFunc(x); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
+  tmp=objFunc(x,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
   info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
   fBest = f; xBest = x
   time4fcallAcc=time4fcallAcc+time4fcall
@@ -349,12 +349,12 @@ rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=
     for(k in 1:p){
       xh[k] = x[k] + h[k]; xh[k] = MIN(xHi[k], xh[k])
       if(cnv$dumpResults >= 2) write(paste('Forward Jacoian sample point:   ', paste(xh,collapse=" ")),file=cnv$logFile,append=TRUE)
-      tmp=objFunc(xh); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
+      tmp=objFunc(xh,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fh, xh, rh,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       xl[k] = x[k] - h[k]; xl[k] = MAX(xLo[k], xl[k])
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 2) write(paste('Backward Jacobian sample Point: ', paste(xl,collapse=" ")),file=cnv$logFile,append=TRUE)
-      tmp=objFunc(xl); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
+      tmp=objFunc(xl,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fl, xl, rl,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       time4fcallAcc=time4fcallAcc+time4fcall
       Ja[ ,k] = (rh-rl)/(xh[k]-xl[k])
@@ -375,10 +375,10 @@ rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=
     for(k in 1:p){
       if(x[k] <= xLo[k] + 10.0*EPS*MAX(ABS(xLo[k]),xScale[k])){
         as[k] = MERGE(BFL, BL, g[k] < 0.0)
-        tmp=updateHess(He, k);He=tmp$He #SUB2FUNC conversion
+        He=updateHess(He, k)
       }else if(x[k] >= xHi[k] - 10.0*EPS*MAX(ABS(xHi[k]),xScale[k])){
-        as[k] = MERGE(BFH, BH, g(k) > 0.0)
-        tmp=updateHess(He, k);He=tmp$He #SUB2FUNC conversion
+        as[k] = MERGE(BFH, BH, g[k] > 0.0)
+        He=updateHess(He, k)
       }else{
         as[k] = BF
       }
@@ -437,7 +437,7 @@ rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=
         gMaxFree = MAXVAL(ABS(g)*MAX(ABS(x),xScale), mask = as == BF)
         for(k in 1:p){
           if(ABS(g[k])*MAX(ABS(x[k]),xScale[k])>= set$tol*gMaxFree & (as[k] == BFL | as[k] == BFH)) {
-            as(k) = BF
+            as[k] = BF
           }
         }
       }
@@ -522,7 +522,7 @@ rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=
     flag_ls = NO
     for(i in 0: set$nls){
       xt = x + sig*delX
-      tmp=objFunc(xt);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
+      tmp=objFunc(xt,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 3) {
@@ -577,7 +577,6 @@ rgn=function(objFunc, p, n, x0, xLo, xHi, cnv, x, info, error, message, decFile=
           noRelChangeF = noRelChangeF + 1
         }
       }
-
       if(noRelChangeF >= cnv$noRelChangeF) {
         info$termFlag = 2; break
       }
@@ -741,7 +740,8 @@ svdDecomp=function(a, u, s, v, nite){
     err = Norm(as.vector(e))/ Norm(f) # RESHAPE conversion, carefully checked instance column from matrix to vector
     nite = nite + 1
     #print(paste(nite,err,EPS)) #MLDHACK DEBUG
-    if(err < (EPS)^0.65) break #############3for some reason I cannot get same precision, so MLHACK here as temp fix - precision seems to max out at 1e-11
+#    if(err < (EPS)^0.65) break #############3for some reason I cannot get same precision, so MLHACK here as temp fix - precision seems to max out at 1e-11
+    if(err < EPS) break # DM: this seems to work for hymod example
   }
   if(i>1000) print(paste("convergence issue, only achieved:",err))
   return(list(u=u, s=s, v=v, nite=nite))
@@ -796,11 +796,12 @@ Qr=function(a,q,r){
   for(k in 1:n){
     r[k,k] = Norm(a0[ ,k])
     #       q(:,k) = a0(:,k) / r(k,k)
-    ind=which(abs(a0[ ,k])>0.000000001)  #FIXME_DK: rough fix will need checks+refinement
+#    ind=which(abs(a0[ ,k])>0.000000001)  #FIXME_DK: rough fix will need checks+refinement
+    ind = which(a0[,k]!=0.) # DM: this seems to work for now
     if(length(ind)>0) q[ind,k] = a0[ind,k] / r[k,k]
     if(k!=n){
       r[k,(k+1):n] = MATMUL(q[ ,k], a0[ ,(k+1):n])
-      a0[ ,(k+1):n] = a0[ ,(k+1):n] - MATMUL(q[ ,k:k], r[k:k,(k+1):n])
+      a0[ ,(k+1):n] = a0[ ,(k+1):n] - MATMUL(matrix(q[ ,k:k],nrow=n,ncol=1), matrix(r[k:k,(k+1):n],nrow=1,ncol=(n-k)))
     }
   }
   return(list(q=q,r=r))
