@@ -15,6 +15,7 @@ objFunc = function(x,stateVal,obsQ,nWarmUp,rain,pet){
 
   procnam="ObjFunc"
   message = ''
+  error = 0
   #---
   #
   timeObj[1] = Sys.time()
