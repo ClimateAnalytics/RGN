@@ -4,8 +4,8 @@
 
 rm(list=ls())
 
-path = 'C:/Users/a1065639/Box/2021_foreSIGHT/RGN_package/RGN/'
-setwd(path)
+# path = 'C:/Users/a1065639/Box/2021_foreSIGHT/RGN_package/RGN/'
+# setwd(path)
 devtools::load_all()
 
 testRGN=function(){
