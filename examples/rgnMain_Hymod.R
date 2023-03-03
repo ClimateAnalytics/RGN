@@ -78,86 +78,40 @@ testRGN=function(){
   # Finally, the initial states for storage are loaded.
   #******************************************************************
 
-  p=5
-  x0=rep(0.0,p); xLo=rep(0.0,p); xHi=rep(0.0,p); x=rep(0.0,p)
-  cnv=rgnConvType
-  error=0
-  message=""
+  ##### setup parameter bounds
+  x0 = c(400.,0.5,0.1,0.2,0.1)
+  xLo = c(1.,0.1,0.05,0.000001,0.000001)
+  xHi = c(1000.,2.,0.95,0.99999,0.99999)
+
+  ##### settings
   info=rgnInfoType
+  cnv = setDefaultRgnConvergeSettings(dump=10, fail=0)
 
-#  procnam="testMain"
-  cat("Calibrating Hymod with RGN, approximate running time 10-40 seconds\n")
-  cat("\n")
+  ##### setup initial states
+  stateVal = c(100.0,30.0,27.0,25.0,30.0,0.0,0.0,0.0)
 
-#  parName[1] = "Maximum storage capacity"
-  xLo[1] = 1.
-  xHi[1] = 1000.
-  x0[1] = 400.
-
-#  parName[2] = "Degree of spatial variability of the soil moisture capacity"
-  xLo[2] = 0.1
-  xHi[2] = 2.
-  x0[2] = 0.5
-
-#  parName[3] = "Factor disturbing the flow between slow and quick release reservoirs"
-  xLo[3] = 0.05
-  xHi[3] = 0.95
-  x0[3] = 0.1
-
-#  parName[4] = "Residence time of the slow release reservoir"
-  xLo[4] = 0.000001
-  xHi[4] = 0.99999
-  x0[4] = 0.2
-
-#  parName[5] = "Residence time of the quick release reservoirs"
-  xLo[5] = 0.000001
-  xHi[5] = 0.99999
-  x0[5] = 0.1
-
-  #Continue reading the File, the dataFileName is the name of the input file, includes rainfall, runoff, evaporation
+  #### read data
   dataFileName = "examples/BassRiver.dat"
-
-  nWarmUp = 365
-
-  nState = 8
-
-  stateName = stateVal = c()
-
-#  stateName[1] = "initial storage of soil moister tank"
-  stateVal[1] = 100.0
-#  stateName[2] = "initial storage of the slow flow tank"
-  stateVal[2] = 30.0
-#  stateName[3] = "initial storage of the first quick flow tank"
-  stateVal[3] = 27.0
-#  stateName[4] = "initial storage of the second quick flow tank"
-  stateVal[4] =   25.0
-#  stateName[5] = "initial storage of the third quick flow tank"
-  stateVal[5] = 30.0
-#  stateName[6] = "intial slow flow (not necessary)"
-  stateVal[6] = 0.0
-#  stateName[7] = "intial quick flow (not necessary)"
-  stateVal[7] = 0.0
-#  stateName[8] = "intial total flow (not necessary)"
-  stateVal[8] = 0.0
-
   d = read.csv(dataFileName)
-
   rain = d[,1]
   pet = d[,2]
   obsQ = d[,3]
   nData = length(rain)
 
-  #Part 2: Run RGN
-  #Initialize the RGN default settings
-  cnv = setDefaultRgnConvergeSettings(dump=10, fail=0)
-  #Call RGN optimization algorithms
-  # key input parameters: p is the number of parameters to be optimized
-  #                       n is the number of residuals
+  #### set warmup period
+  nWarmUp = 365
 
-  tmp= rgn(simFunc=simFunc, p=p, n=nData-nWarmUp+1, x0=x0, xLo=xLo, xHi=xHi, cnv=cnv, x=x, info=info, error=error, message=message,
-           stateVal=stateVal, target=obsQ[nWarmUp:nData], nWarmUp=nWarmUp,rain=rain,pet=pet) #SUB2FUNC conversion
+  #### run RGN
+  cat("Calibrating Hymod with RGN, approximate running time 10-40 seconds\n")
+  cat("\n")
+  tmp= rgn(simFunc=simFunc,
+           x0=x0, xLo=xLo, xHi=xHi,
+           target=obsQ[nWarmUp:nData],
+           cnv=cnv, info=info,
+           stateVal=stateVal, nWarmUp=nWarmUp,rain=rain,pet=pet) #SUB2FUNC conversion
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
 
+  #### write output
   if(error != 0){
     print(message)
     readline()

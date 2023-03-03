@@ -23,30 +23,23 @@ testRGN=function(){
   # The public variables were shared through subroutine "constantsMod.f90"
   #******************************************************************
 
-  p=2; n=2
-  x0=rep(0.0,p); xLo=rep(0.0,p); xHi=rep(0.0,p); x=rep(0.0,p)
-  cnv=rgnConvType
-  error=0
-  message=""
-  info=rgnInfoType
-  #EXTERNAL objFunc
-
-  #----
-    #Write out the message what is running
-  print(" Calibrating Rosenbrock with RGN, approximate running time 1-2 seconds")
-  print("")
-
-  #error=0                                              # Initialize error flag
-  #message=""                                           # Initialize message
+  ##### setup parameter bounds
   x0 =  c(-1.0,  0.0)                             # Start point of the search, with the optimum at [1.0 1.0]
   xLo = c(-1.5, -1.0)                             # Low bound
   xHi = c( 1.5,  3.0)                             # Upper bound
 
+  ##### settings
+  info=rgnInfoType
   cnv=setDefaultRgnConvergeSettings (dump=10, fail=0)
-  #
-  # key input parameters: p is the number of parameters to be optimized
-  #                       n is the number of residuals
-  tmp= rgn(simFunc=simFunc, p=2, n=2, x0=x0, xLo=xLo, xHi=xHi, cnv=cnv, x=x, target=c(0,0), info=info, error=error, message=message) #SUB2FUNC conversion
+
+  #----
+    #Write out the message what is running
+  print(" Calibrating Rosenbrock with RGN, approximate running time 1-2 seconds")
+  tmp= rgn(simFunc=simFunc,
+           x0=x0, xLo=xLo, xHi=xHi,
+           target=c(0,0),
+           cnv=cnv, info=info,
+           ) #SUB2FUNC conversion
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
 
   if(error != 0){
