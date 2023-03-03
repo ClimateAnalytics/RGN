@@ -239,7 +239,7 @@ objFuncCall = function(simFunc,params,target,weights,...){
 
 #
 # Robust Gauss-Newton code based on Qin2018a
-rgn=function(simFunc, p, n, x0, xLo, xHi, cnv, x, target, info, error, message, decFile=NULL, weights=NULL, ...){
+rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NULL, ...){
   # input objFunc - function pointer to objective function
   # input real: p        # Number of parameters
   # input real: n        # Number of observations in calibration
@@ -254,6 +254,8 @@ rgn=function(simFunc, p, n, x0, xLo, xHi, cnv, x, target, info, error, message, 
   # output optional character: decFile  # dumpfile name
   # Locals
 
+  p = length(x0)
+  n = length(target)
   if(is.null(weights)){weights=rep(1,n)}
   nIter=0; i=0; j=0; k=0; m=0; nrls=0; nf=0; iMax=0; nr=0; termCode=0; noReduction=0; noRelChangeF=0; noRelChangePar=0
   forceRelease=FALSE; flag_ls=FALSE; xist=FALSE
