@@ -228,11 +228,13 @@ objFuncCall = function(simFunc,params,target,weights,...){
   timeObj[1] = Sys.time()
   sim = simFunc(params=params,...)
   r = target-sim
+  r = r[!is.na(r)]
   f = sum(r^2)
   f = f/2.0
   timeObj[2] = Sys.time()
   timeFunc=timeObj[2]-timeObj[1]
   outObjFunc = list(r=r, f=f, timeFunc=timeFunc) # DM to do: add error number and message to this
+
   return(outObjFunc)
 }
 
@@ -255,7 +257,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
   # Locals
 
   p = length(x0)
-  n = length(target)
+  n = length(target[!is.na(target)])
   if(is.null(weights)){weights=rep(1,n)}
   nIter=0; i=0; j=0; k=0; m=0; nrls=0; nf=0; iMax=0; nr=0; termCode=0; noReduction=0; noRelChangeF=0; noRelChangePar=0
   forceRelease=FALSE; flag_ls=FALSE; xist=FALSE
