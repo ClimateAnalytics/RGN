@@ -80,7 +80,7 @@ rgnSetType$xScale=0.0
 rgnSetType$fScale=0.0
 rgnSetType$nls=0
 
-set <<- rgnSetType # a global instance
+set <<- rgnSetType
 
 # mimic F90 functionality
 PRESENT=function(x=NULL){
@@ -199,6 +199,7 @@ setRgnConstants=function(alpha=NULL, beta=NULL, nls=NULL){
   # optional real: alpha, beta
   #---
   # NOTE - Side-effect - global variable via <<- operator
+  #set = rgnSetType
   set$gtol <<- 1.0e-10
   set$stol <<- 1.0e-11
   set$ftol <<- 1.0e-10
@@ -222,12 +223,12 @@ goto1=function(procnam){
 }
 
 
-objFuncCall = function(simFunc,x,target,weights,...){
+objFuncCall = function(simFunc,x,simTarget,weights,...){
   #time for evaluating
   timeObj = vector(length=2)
   timeObj[1] = Sys.time()
   sim = simFunc(x=x,...)
-  r = target-sim
+  r = simTarget-sim
   r = r[!is.na(r)]
   f = sum(r^2)
   f = f/2.0
@@ -235,13 +236,15 @@ objFuncCall = function(simFunc,x,target,weights,...){
   timeFunc=timeObj[2]-timeObj[1]
   outObjFunc = list(r=r, f=f, timeFunc=timeFunc) # DM to do: add error number and message to this
 
+#  browser()
+
   return(outObjFunc)
 }
 
 
 #
 # Robust Gauss-Newton code based on Qin2018a
-rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NULL, ...){
+rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=NULL, ...){
   # input objFunc - function pointer to objective function
   # input real: p        # Number of parameters
   # input real: n        # Number of observations in calibration
@@ -257,7 +260,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
   # Locals
 
   p = length(x0)
-  n = length(target[!is.na(target)])
+  n = length(simTarget[!is.na(simTarget)])
   if(is.null(weights)){weights=rep(1,n)}
   nIter=0; i=0; j=0; k=0; m=0; nrls=0; nf=0; iMax=0; nr=0; termCode=0; noReduction=0; noRelChangeF=0; noRelChangePar=0
   forceRelease=FALSE; flag_ls=FALSE; xist=FALSE
@@ -343,7 +346,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
   time[1]=Sys.time()
   x = x0
 #  tmp=objFunc(x,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
-  tmp=objFuncCall(simFunc=simFunc,x=x,target=target,weights=weights,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
+  tmp=objFuncCall(simFunc=simFunc,x=x,simTarget=simTarget,weights=weights,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
   info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
   fBest = f; xBest = x
   time4fcallAcc=time4fcallAcc+time4fcall
@@ -373,13 +376,13 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
       xh[k] = x[k] + h[k]; xh[k] = MIN(xHi[k], xh[k])
       if(cnv$dumpResults >= 2) write(paste('Forward Jacoian sample point:   ', paste(xh,collapse=" ")),file=cnv$logFile,append=TRUE)
 #      tmp=objFunc(xh,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
-      tmp=objFuncCall(simFunc=simFunc,x=xh,target=target,weights=weights,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
+      tmp=objFuncCall(simFunc=simFunc,x=xh,simTarget=simTarget,weights=weights,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fh, xh, rh,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       xl[k] = x[k] - h[k]; xl[k] = MAX(xLo[k], xl[k])
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 2) write(paste('Backward Jacobian sample Point: ', paste(xl,collapse=" ")),file=cnv$logFile,append=TRUE)
 #      tmp=objFunc(xl,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
-      tmp=objFuncCall(simFunc=simFunc,x=xl,target=target,weights=weights,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
+      tmp=objFuncCall(simFunc=simFunc,x=xl,simTarget=simTarget,weights=weights,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fl, xl, rl,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       time4fcallAcc=time4fcallAcc+time4fcall
       Ja[ ,k] = (rh-rl)/(xh[k]-xl[k])
@@ -476,7 +479,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
             gMaxThawn = ABS(g[k]*MAX(ABS(x[k]),xScale[k])); iMax = k
           }
         }
-        if(iMax > 0) as(iMax) = BF
+        if(iMax > 0) as[iMax] = BF
         for(k in 1:p){
           if(ABS(g[k]*MAX(ABS(x[k]),xScale[k])) > set$tolFor*gMaxThawn & (as[k] == BFL | as[k] == BFH)) as[k] = BF
         }
@@ -550,7 +553,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
     for(i in 0: set$nls){
       xt = x + sig*delX
 #      tmp=objFunc(xt,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
-      tmp=objFuncCall(simFunc=simFunc,x=xt,target=target,weights=weights,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
+      tmp=objFuncCall(simFunc=simFunc,x=xt,simTarget=simTarget,weights=weights,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 3) {

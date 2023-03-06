@@ -83,7 +83,8 @@ testRGN=function(){
 
   ##### settings
   info=rgnInfoType
-  cnv = setDefaultRgnConvergeSettings(dump=10, fail=0)
+#  cnv = setDefaultRgnConvergeSettings(dump=10, fail=0)
+  cnv = setDefaultRgnConvergeSettings(dump=0, fail=0)
 
   ##### setup initial states
   stateVal = c(100.0,30.0,27.0,25.0,30.0,0.0,0.0,0.0)
@@ -104,7 +105,7 @@ testRGN=function(){
   cat("\n")
   tmp= rgn(simFunc=simFunc,
            x0=x0, xLo=xLo, xHi=xHi,
-           target=obsQ[nWarmUp:nData],
+           simTarget=obsQ[nWarmUp:nData],
            cnv=cnv, info=info,
            stateVal=stateVal, nWarmUp=nWarmUp,rain=rain,pet=pet) #SUB2FUNC conversion
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info

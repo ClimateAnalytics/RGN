@@ -1,7 +1,7 @@
 rm(list=ls())
 
 devtools::load_all()
-
+#library(RGN)
 testRGN=function(){
   # Purpose: Calibrate 2D Rosenbrock function with Robust Gauss-Newton Algorithm (RGN)
   # ---
@@ -31,7 +31,7 @@ testRGN=function(){
   print(" Calibrating Rosenbrock with RGN, approximate running time 1-2 seconds")
   tmp= rgn(simFunc=simFunc,
            x0=x0, xLo=xLo, xHi=xHi,
-           target=c(0,0),
+           simTarget=c(0,0),
            cnv=cnv, info=info,
            ) #SUB2FUNC conversion
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
