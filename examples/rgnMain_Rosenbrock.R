@@ -1,11 +1,5 @@
-#path="/home/mike/temp/Robust-Gauss-Newton-Algorithm-master/R/"
-#setwd(path)
-#source("rgn.R")
-
 rm(list=ls())
 
-# path = 'C:/Users/a1065639/Box/2021_foreSIGHT/RGN_package/RGN/'
-# setwd(path)
 devtools::load_all()
 
 testRGN=function(){
@@ -54,10 +48,10 @@ testRGN=function(){
   print(paste("CPU time:                ",info$cpuTime))
 } #END PROGRAM testRGN
 
-simFunc=function(params){
+simFunc=function(x){
   r=rep(0,2)
-  r[1] = 1.0-params[1]
-  r[2]=10.0*(params[2]-params[1]**2)                      # Compute residual
+  r[1] = 1.0-x[1]
+  r[2]=10.0*(x[2]-x[1]**2)                      # Compute residual
   return(r)
 } #END simFunc
 

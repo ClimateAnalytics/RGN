@@ -1,7 +1,5 @@
 rm(list=ls())
 
-# path = 'C:/Users/a1065639/Box/2021_foreSIGHT/RGN_package/RGN/'
-# setwd(path)
 devtools::load_all()
 
 ################################################################
@@ -21,14 +19,14 @@ nse <- function(
 
 ################################################################
 
-simFunc = function(params,InputsModel=InputsModel,
+simFunc = function(x,InputsModel=InputsModel,
                    Ind_Run=Ind_Run,
                    RunOptions=RunOptions){
 
-  names(params) = c('X1','X2','X3','X4')
+  names(x) = c('X1','X2','X3','X4')
 
   OutputsModel <- RunModel_GR4J(InputsModel = InputsModel,
-                                RunOptions = RunOptions, Param = params)
+                                RunOptions = RunOptions, Param = x)
 
   return(OutputsModel$Qsim)
 
@@ -50,9 +48,15 @@ InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR4J, DatesR = BasinObs$Date
 Ind_Run <- seq(which(format(BasinObs$DatesR, format = "%Y-%m-%d")=="1990-01-01"),
                which(format(BasinObs$DatesR, format = "%Y-%m-%d")=="1999-12-31"))
 
+## warmup period selection
+Ind_Warmup <- seq(which(format(BasinObs$DatesR, format = "%Y-%m-%d")=="1989-01-01"),
+               which(format(BasinObs$DatesR, format = "%Y-%m-%d")=="1989-12-31"))
+
 ## preparation of the RunOptions object
 RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR4J,
-                               InputsModel = InputsModel, IndPeriod_Run = Ind_Run)
+                               InputsModel = InputsModel,
+                               IndPeriod_Run = Ind_Run,
+                               IndPeriod_WarmUp = Ind_Warmup)
 
 ################### RGN calibration ###################
 
@@ -89,7 +93,7 @@ print(paste("Total iteration:         ", info$nIter))
 print(paste("Termination flag:        ", info$termFlag))
 print(paste("CPU time:                ",info$cpuTime))
 
-simBest = simFunc(params=x,
+simBest = simFunc(x=x,
                   InputsModel=InputsModel,
                   Ind_Run=Ind_Run,
                   RunOptions=RunOptions)

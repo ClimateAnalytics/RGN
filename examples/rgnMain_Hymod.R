@@ -1,15 +1,13 @@
 rm(list=ls())
 
-# path = 'C:/Users/a1065639/Box/2021_foreSIGHT/RGN_package/RGN/'
-# setwd(path)
 devtools::load_all()
 
 ################################################################
 
-simFunc = function(params,stateVal,nWarmUp,rain,pet){
+simFunc = function(x,stateVal,nWarmUp,rain,pet){
 
   #Hymod Parameters and states
-  S = vector(length=length(params))
+  S = vector(length=length(x))
 
 #  procnam="ObjFunc"
   message = ''
@@ -18,11 +16,11 @@ simFunc = function(params,stateVal,nWarmUp,rain,pet){
   #
   flexS=TRUE         # Allow fix of Smax
   #Assign parameters
-  Smax=params[1]            # Maximum storage capacity
-  b=params[2]               # Degree of spatial variability of the soil moisture capacity
-  alpha=params[3]           # Factor distributing the flow between slow and quick release reservoirs
-  Ks=params[4]              # Residence time of the slow release reservoir
-  Kq=params[5]              # Residence time of the quick release reservoir
+  Smax=x[1]            # Maximum storage capacity
+  b=x[2]               # Degree of spatial variability of the soil moisture capacity
+  alpha=x[3]           # Factor distributing the flow between slow and quick release reservoirs
+  Ks=x[4]              # Residence time of the slow release reservoir
+  Kq=x[5]              # Residence time of the quick release reservoir
 
   # Initialize surfacewater storages and baseflowstorage, and the initial storage of C1,C2,C3
   S[1]=stateVal[1];S[2]=stateVal[2];S[3]=stateVal[3];S[4]=stateVal[4]; S[5]=stateVal[5]
@@ -122,6 +120,28 @@ testRGN=function(){
   print(paste("Total iteration:         ", info$nIter))
   print(paste("Termination flag:        ", info$termFlag))
   print(paste("CPU time:                ",info$cpuTime))
+
+  # #### run RGN with multi-starts
+  # nReps = 10
+  # xMat = matrix(nrow = nReps,ncol = length(x0))
+  # fVec = vector(length=nReps)
+  # cat("Calibrating Hymod with RGN - multistarts \n")
+  # for (r in 1:nReps){
+  #   cat(r,"\n")
+  #   x0 = xLo + runif(length(x0))*(xHi-xLo)
+  #   cat(x0,'\n')
+  #   tmp= rgn(simFunc=simFunc,
+  #            x0=x0, xLo=xLo, xHi=xHi,
+  #            target=obsQ[nWarmUp:nData],
+  #            cnv=cnv, info=info,
+  #            stateVal=stateVal, nWarmUp=nWarmUp,rain=rain,pet=pet) #SUB2FUNC conversion
+  #   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
+  #   xMat[r,] = x
+  #   fVec[r] = info$f
+  #   cat(x,'\n')
+  #   cat(info$f,'\n')
+  # }
+
 } #END PROGRAM testRGN
 
 ################################################################

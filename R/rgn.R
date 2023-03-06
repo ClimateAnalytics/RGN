@@ -222,11 +222,11 @@ goto1=function(procnam){
 }
 
 
-objFuncCall = function(simFunc,params,target,weights,...){
+objFuncCall = function(simFunc,x,target,weights,...){
   #time for evaluating
   timeObj = vector(length=2)
   timeObj[1] = Sys.time()
-  sim = simFunc(params=params,...)
+  sim = simFunc(x=x,...)
   r = target-sim
   r = r[!is.na(r)]
   f = sum(r^2)
@@ -343,7 +343,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
   time[1]=Sys.time()
   x = x0
 #  tmp=objFunc(x,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
-  tmp=objFuncCall(simFunc=simFunc,params=x,target=target,weights=weights,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
+  tmp=objFuncCall(simFunc=simFunc,x=x,target=target,weights=weights,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
   info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
   fBest = f; xBest = x
   time4fcallAcc=time4fcallAcc+time4fcall
@@ -373,13 +373,13 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
       xh[k] = x[k] + h[k]; xh[k] = MIN(xHi[k], xh[k])
       if(cnv$dumpResults >= 2) write(paste('Forward Jacoian sample point:   ', paste(xh,collapse=" ")),file=cnv$logFile,append=TRUE)
 #      tmp=objFunc(xh,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
-      tmp=objFuncCall(simFunc=simFunc,params=xh,target=target,weights=weights,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
+      tmp=objFuncCall(simFunc=simFunc,x=xh,target=target,weights=weights,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fh, xh, rh,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       xl[k] = x[k] - h[k]; xl[k] = MAX(xLo[k], xl[k])
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 2) write(paste('Backward Jacobian sample Point: ', paste(xl,collapse=" ")),file=cnv$logFile,append=TRUE)
 #      tmp=objFunc(xl,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
-      tmp=objFuncCall(simFunc=simFunc,params=xl,target=target,weights=weights,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
+      tmp=objFuncCall(simFunc=simFunc,x=xl,target=target,weights=weights,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fl, xl, rl,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       time4fcallAcc=time4fcallAcc+time4fcall
       Ja[ ,k] = (rh-rl)/(xh[k]-xl[k])
@@ -414,8 +414,10 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
       write(paste('Best parameter x=               ', paste(xBest,collapse=" ")),file=cnv$logFile,append=TRUE)
       write(paste('Gradient g at parameter x=       ', paste(g,collapse=" ")),file=cnv$logFile,append=TRUE)
       write(paste('Hessian at x=                    ', He[1,1]),file=cnv$logFile,append=TRUE)
-      for(j in 2:p){
-        write(He[j,1:j],file=cnv$logFile,append=TRUE)
+      if (p>1){
+        for(j in 2:p){
+          write(He[j,1:j],file=cnv$logFile,append=TRUE)
+        }
       }
     }
     #
@@ -548,7 +550,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, target, info, decFile=NULL, weights=NUL
     for(i in 0: set$nls){
       xt = x + sig*delX
 #      tmp=objFunc(xt,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
-      tmp=objFuncCall(simFunc=simFunc,params=xt,target=target,weights=weights,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
+      tmp=objFuncCall(simFunc=simFunc,x=xt,target=target,weights=weights,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 3) {
