@@ -229,9 +229,13 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
   timeObj[1] = Sys.time()
 
   # deal with fixed and fitted pars
-  xAll = c()
-  xAll[fixParLoc] = fixParVal
-  xAll[fitParLoc] = x
+  if (!is.null(fixParLoc)){
+    xAll = c()
+    xAll[fixParLoc] = fixParVal
+    xAll[fitParLoc] = x
+  } else {
+    xAll = x
+  }
 
   sim = simFunc(x=xAll,...)
   r = simTarget-sim
@@ -246,7 +250,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 
 }
 
-# this function deals with fixed parameters (that have same lower and uppwer bound)
+# this function deals with fixed parameters (that have same lower and upper bound)
 rgn_fixPars = function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=NULL, ...){
 
   fixParLoc = fixParVal = fitParLoc = c()
@@ -355,7 +359,6 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
   fOptSeries=rep(0.0,cnv$iterMax)
   delXAct=rep(0.0,p)
 
-
   if(cnv$dumpResults >= 1){ # Fortran formats are not relevant in R, need to swap over to fortmat() function
     dfm[1]=paste('(a,', p,'g15.7)',sep="")
     dfm[2]=paste('(a,', p,'i3)',sep="")
@@ -380,7 +383,6 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
   info$termFlag = 0; info$nEval = 0
   time[1]=Sys.time()
   x = x0
-#  tmp=objFunc(x,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
   tmp=objFuncCall(simFunc=simFunc,x=x,simTarget=simTarget,weights=weights,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
 
   info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
@@ -411,13 +413,11 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
     for(k in 1:p){
       xh[k] = x[k] + h[k]; xh[k] = MIN(xHi[k], xh[k])
       if(cnv$dumpResults >= 2) write(paste('Forward Jacoian sample point:   ', paste(xh,collapse=" ")),file=cnv$logFile,append=TRUE)
-#      tmp=objFunc(xh,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
       tmp=objFuncCall(simFunc=simFunc,x=xh,simTarget=simTarget,weights=weights,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fh, xh, rh,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       xl[k] = x[k] - h[k]; xl[k] = MAX(xLo[k], xl[k])
       time4fcallAcc=time4fcallAcc+time4fcall
       if(cnv$dumpResults >= 2) write(paste('Backward Jacobian sample Point: ', paste(xl,collapse=" ")),file=cnv$logFile,append=TRUE)
-#      tmp=objFunc(xl,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
       tmp=objFuncCall(simFunc=simFunc,x=xl,simTarget=simTarget,weights=weights,...); fl=tmp$f;rl=tmp$r;time4fcall=tmp$tFunc  #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fl, xl, rl,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       time4fcallAcc=time4fcallAcc+time4fcall
@@ -544,12 +544,6 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
     }
     minSingFrac = set$alpha*sqrt(EPS)
     tmp=svdSolve(m=nr, n=nr, A=HeRdc, b=-gRdc, x=delXRdc, tS=tsv, error=error, message=message, minSingFrac=minSingFrac);delXRdc=tmp$x;tsv=tmp$tS;error=tmp$error;message=tmp$message #SUB2FUNC conversion
-    # browser()
-    #
-    # delXRdc = Matrix::solve(HeRdc, -gRdc)
-    #
-    # delXRdc = solve(HeRdc,-gRdc)
-
 
     if(error !=0) return(goto1(procnam))
     j = 0
@@ -594,7 +588,6 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
     flag_ls = NO
     for(i in 0: set$nls){
       xt = x + sig*delX
-#      tmp=objFunc(xt,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
       tmp=objFuncCall(simFunc=simFunc,x=xt,simTarget=simTarget,weights=weights,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
       time4fcallAcc=time4fcallAcc+time4fcall
