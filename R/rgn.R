@@ -223,24 +223,58 @@ goto1=function(procnam){
 }
 
 
-objFuncCall = function(simFunc,x,simTarget,weights,...){
-  #time for evaluating
+objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL,fitParLoc=NULL,...){
+
   timeObj = vector(length=2)
   timeObj[1] = Sys.time()
-  sim = simFunc(x=x,...)
+
+  # deal with fixed and fitted pars
+  xAll = c()
+  xAll[fixParLoc] = fixParVal
+  xAll[fitParLoc] = x
+
+  sim = simFunc(x=xAll,...)
   r = simTarget-sim
   r = r[!is.na(r)]
   f = sum(r^2)
   f = f/2.0
+
   timeObj[2] = Sys.time()
   timeFunc=timeObj[2]-timeObj[1]
   outObjFunc = list(r=r, f=f, timeFunc=timeFunc) # DM to do: add error number and message to this
-
-#  browser()
-
   return(outObjFunc)
+
 }
 
+# this function deals with fixed parameters (that have same lower and uppwer bound)
+rgn_fixPars = function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=NULL, ...){
+
+  fixParLoc = fixParVal = fitParLoc = c()
+  for (i in 1:length(x0)){
+    if (xLo[i]==xHi[i]){
+      fixParLoc = c(fixParLoc,i)
+      fixParVal = c(fixParVal,xLo[i])
+    } else{
+      fitParLoc = c(fitParLoc,i)
+    }
+  }
+
+  tmp = rgn(simFunc=simFunc,
+           x0=x0[fitParLoc], xLo=xLo[fitParLoc], xHi=xHi[fitParLoc],
+           simTarget=simTarget,
+           cnv=cnv, info=info, fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
+
+
+  x = tmp$x
+  xAll = c()
+  xAll[fixParLoc] = fixParVal
+  xAll[fitParLoc] = x
+
+  tmp$x = xAll
+
+  return(tmp)
+
+}
 
 #
 # Robust Gauss-Newton code based on Qin2018a
@@ -330,6 +364,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
     #write(dfm,file=cnv$logFile)
     write("R output",file=cnv$logFile)
   }
+
   #
   # Assign constants
   setRgnConstants()
@@ -347,6 +382,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
   x = x0
 #  tmp=objFunc(x,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
   tmp=objFuncCall(simFunc=simFunc,x=x,simTarget=simTarget,weights=weights,...); f=tmp$f;rBest=tmp$r;time4fcall=tmp$timeFunc  #SUB2FUNC conversion
+
   info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam))
   fBest = f; xBest = x
   time4fcallAcc=time4fcallAcc+time4fcall
@@ -508,6 +544,12 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
     }
     minSingFrac = set$alpha*sqrt(EPS)
     tmp=svdSolve(m=nr, n=nr, A=HeRdc, b=-gRdc, x=delXRdc, tS=tsv, error=error, message=message, minSingFrac=minSingFrac);delXRdc=tmp$x;tsv=tmp$tS;error=tmp$error;message=tmp$message #SUB2FUNC conversion
+    # browser()
+    #
+    # delXRdc = Matrix::solve(HeRdc, -gRdc)
+    #
+    # delXRdc = solve(HeRdc,-gRdc)
+
 
     if(error !=0) return(goto1(procnam))
     j = 0
