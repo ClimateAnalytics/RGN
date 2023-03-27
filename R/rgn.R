@@ -1,3 +1,5 @@
+######### NEED TO FIX HEADER COMMENTS
+
 #******************************************************************
 #
 # Purpose: Optimize SLS Objective Function with Robust Gauss-Newton Algorithm
@@ -543,7 +545,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
       }
     }
     minSingFrac = set$alpha*sqrt(EPS)
-    tmp=svdSolve(m=nr, n=nr, A=HeRdc, b=-gRdc, x=delXRdc, tS=tsv, error=error, message=message, minSingFrac=minSingFrac);delXRdc=tmp$x;tsv=tmp$tS;error=tmp$error;message=tmp$message #SUB2FUNC conversion
+    tmp=svdSolve(m=nr, n=nr, A=HeRdc, b=-gRdc, x=delXRdc, minSingFrac=minSingFrac);delXRdc=tmp$x;tsv=tmp$tS;error=tmp$error;message=tmp$message #SUB2FUNC conversion
 
     if(error !=0) return(goto1(procnam))
     j = 0
@@ -679,7 +681,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
 } # END rgn
 
 # ------------------------------ EVERYTHING BELOW THIS LINE COULD BE REPLACED WITH AN R NATIVE SVDSOLVER, e.g. svd()------------------------------------
-svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, tS=NULL, error, message, minSingFrac=NULL, minSingVal=NULL, cn=NULL){
+svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, minSingFrac=NULL,minSingVal=NULL,tS=NULL,cn=NULL){
   # Solves Ax=b using SVD decomposition followed setting singular values to zero and then back substitution
   # input integer m,n
   # input real A(:,:)
@@ -720,7 +722,7 @@ svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, tS=NULL, error, message
     # Perform SVD of A
 
   # Singular value decomposition
-  tmp=svdDecomp (a=A, u=U, s=SD, v=V, nite=nite);U=tmp$u;SD=tmp$s;V=tmp$v;nite=tmp$nite #SUB2FUNC conversion
+  tmp=svdDecomp (a=A);U=tmp$u;SD=tmp$s;V=tmp$v;nite=tmp$nite #SUB2FUNC conversion
 
   # Dealing with U and V, in the opposite direction
   U=-U; V=-V
@@ -769,7 +771,7 @@ svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, tS=NULL, error, message
 } #END svdSolve
 
 # Singular value decomposition
-svdDecomp=function(a, u, s, v, nite){
+svdDecomp=function(a){
   # real input A(:,:)
   # outputs
   #u=matrix(0.0,SIZE(a,1), SIZE(a,2))
@@ -777,10 +779,9 @@ svdDecomp=function(a, u, s, v, nite){
   #v=matrix(0.0,SIZE(a,2), SIZE(a,2))
   #nite=0
   # locals
-  q1=matrix(0.0,SIZE(a,1), SIZE(a,2))
+  u = s = v = q1=matrix(0.0,SIZE(a,1), SIZE(a,2))
   u1=matrix(0.0,SIZE(a,1), SIZE(a,1))
-  q=matrix(0.0,SIZE(a,2), SIZE(a,2))
-  e=matrix(0.0,SIZE(a,2), SIZE(a,2))
+  q = e = matrix(0.0,SIZE(a,2), SIZE(a,2))
   f=rep(0.0,SIZE(a,2))
   err=0.0
   n=0
