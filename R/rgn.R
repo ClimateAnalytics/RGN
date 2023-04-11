@@ -1,8 +1,6 @@
-######### NEED TO FIX HEADER COMMENTS
-
 #******************************************************************
 #
-# Purpose: Optimize SLS Objective Function with Robust Gauss-Newton Algorithm
+# Purpose: Optimize weighted sum-of-squares objective function with Robust Gauss-Newton algorithm
 #
 # Programmer: George Kuczera, Youwei Qin, Dmitri Kavetski
 # Created: 21 May 2016 at Newcastle, Australia
@@ -38,8 +36,6 @@
 # Notes
 #   This module follows fairly closely to the pseudocode in Qin2018a,
 #   Any issues or bugs, please contact the first author(Email:youwei.qin@uon.edu.au)
-
-#source("constantsMod.R")
 
 NO=FALSE; YES=TRUE
 EPS=.Machine$double.eps
@@ -177,13 +173,12 @@ MAX=function(...){
 ABS=function(x){abs(x)}
 
 # Initialize the RGN converge variables
-setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL, fail=NULL){
-  #optional arguments iterMax, fail, dump, logFile
+setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL){
+  #optional arguments iterMax, dump, logFile
   cnvSet=rgnConvType
   #---
   #
   cnvSet$iterMax = 100; if(PRESENT(iterMax)) cnvSet$iterMax = iterMax
-  cnvSet$fail = 100000; if(PRESENT(fail)) cnvSet$fail = fail
   cnvSet$noReduction = 4
   cnvSet$noRelChangeFTol = 1.0e-5
   cnvSet$noRelChangeF = 5
@@ -197,9 +192,6 @@ setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL, fa
 
   # Initialize the RGN constants to global variable
 setRgnConstants=function(alpha=NULL, beta=NULL, nls=NULL){
-  # optional integer: nls
-  # optional real: alpha, beta
-  #---
   # NOTE - Side-effect - global variable via <<- operator
   #set = rgnSetType
   set$gtol <<- 1.0e-10
@@ -282,22 +274,26 @@ rgn_fixPars = function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL
 
 }
 
-#
-# Robust Gauss-Newton code based on Qin2018a
-rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=NULL, ...){
-  # input objFunc - function pointer to objective function
-  # input real: p        # Number of parameters
-  # input real: n        # Number of observations in calibration
-  # input real: x0(:)    # Initial parameters
-  # input real: xLo(:)   # Lower bounds on parameters
-  # input real: xHi(:)   # Upper bounds on parameters
-  # input rgnConvType: cnv      # Convergence data structure
-  # output rgnInfoType: info     # Run information data structure
-  # output real : x(:)     # Final parameters
-  # output integer: error    # error code 0= ok
-  # output character: message  # error message
-  # output optional character: decFile  # dumpfile name
-  # Locals
+#' Robust Gauss Newton optimization
+#'
+#' \code{rgn} performs optimization of weighted-sum-of-squares (WSS) objective function using the Robust Gauss Newton algorithm
+#' @param simFunc is a function that simulates a (vector) response, with first argument the vector of parameters over which optimization is performed
+#' @param simTarget is the target vector that \code{simFunc} is trying to match
+#' @param x0 is the vector of initial parameters
+#' @param xLo is the lower bounds on parameters
+#' @param xHi is the upper bounds on parameters
+#' @param weights is a vector of weights used in the WSS objective function
+#' @param cnvSettings list of RGN settings \cr
+#'         \code{cnvSetting$iterMax} is maximum iterations, \cr
+#'         \code{cnvSetting$dump} is level of diagnostic outputs between 0 and 3 (0=none, 3=highest), \cr
+#'         \code{cnvSetting$logFile} is log file name
+#' @useDynLib RGN
+#' @export
+rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, ...){
+
+  info=rgnInfoType
+
+  cnv = setDefaultRgnConvergeSettings(iterMax=cnvSettings$iterMax, dump=cnvSettings$dump, logFile=cnvSettings$logFile)
 
   p = length(x0)
   n = length(simTarget[!is.na(simTarget)])
@@ -370,7 +366,6 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
     write("R output",file=cnv$logFile)
   }
 
-  #
   # Assign constants
   setRgnConstants()
   xScale = rep(set$xScale,p)
@@ -524,7 +519,6 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
       }
     }
 
-    #
     # Solve normal equations after removing non-free parameters
     if(cnv$dumpResults >= 2) write(paste('Active set=                     ', paste(as,collapse=" ")),file=cnv$logFile,append=TRUE)
     nr = sum(MERGE(rep(1,length(as)), 0, as == BF))
@@ -545,6 +539,7 @@ rgn=function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=
       }
     }
     minSingFrac = set$alpha*sqrt(EPS)
+
     tmp=svdSolve(m=nr, n=nr, A=HeRdc, b=-gRdc, x=delXRdc, minSingFrac=minSingFrac);delXRdc=tmp$x;tsv=tmp$tS;error=tmp$error;message=tmp$message #SUB2FUNC conversion
 
     if(error !=0) return(goto1(procnam))
@@ -772,12 +767,6 @@ svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, minSingFrac=NULL,minSin
 
 # Singular value decomposition
 svdDecomp=function(a){
-  # real input A(:,:)
-  # outputs
-  #u=matrix(0.0,SIZE(a,1), SIZE(a,2))
-  #s=matrix(0.0,SIZE(a,2), SIZE(a,2))
-  #v=matrix(0.0,SIZE(a,2), SIZE(a,2))
-  #nite=0
   # locals
   u = s = v = q1=matrix(0.0,SIZE(a,1), SIZE(a,2))
   u1=matrix(0.0,SIZE(a,1), SIZE(a,1))
@@ -788,27 +777,26 @@ svdDecomp=function(a){
   # init u,v,u1
   for(n in 1:SIZE(a,1)) u1[n,n] = 1.0
   for(n in 1:SIZE(a,2)) v[n,n] = 1.0
-  # initial state:
-  tmp=Qr(a=a, q=q1, r=s);q1=tmp$q;s=tmp$r # SUB2FUNC conversion
+
+  tmp = .Fortran('Qr_f90',nRow=nrow(a),nCol=ncol(a),a=a,q=q1,r=s); q1=tmp$q; s=tmp$r
+
   u = MATMUL(u1, q1)
-  tmp=Qr(TRANSPOSE(s), q, s);q=tmp$q;s=tmp$r # SUB2FUNC conversion
+  tmp = .Fortran('Qr_f90',nRow=nrow(TRANSPOSE(s)),nCol=ncol(TRANSPOSE(s)),a=TRANSPOSE(s),q=q1,r=s);q=tmp$q;s=tmp$r
   v = MATMUL(v, q)
   # iterate while converged:
   nite = 1
   #while(TRUE){
   for(i in 1:1000){ # this gives a timeout option when we do not achieve convergence to precision - EPS
-    tmp=Qr(TRANSPOSE(s), q, s);q=tmp$q;s=tmp$r # SUB2FUNC conversion
+    tmp = .Fortran('Qr_f90',nRow=nrow(TRANSPOSE(s)),nCol=ncol(TRANSPOSE(s)),a=TRANSPOSE(s),q=q1,r=s);q=tmp$q;s=tmp$r
     u = MATMUL(u, q)
-    tmp=Qr(TRANSPOSE(s), q, s);q=tmp$q;s=tmp$r # SUB2FUNC conversion
+    tmp = .Fortran('Qr_f90',nRow=nrow(TRANSPOSE(s)),nCol=ncol(TRANSPOSE(s)),a=TRANSPOSE(s),q=q1,r=s);q=tmp$q;s=tmp$r
     v = MATMUL(v, q)
     # check the error:
     e = Triu(s)
     f = Diag_ele(s)
     err = Norm(as.vector(e))/ Norm(f) # RESHAPE conversion, carefully checked instance column from matrix to vector
     nite = nite + 1
-    #print(paste(nite,err,EPS)) #MLDHACK DEBUG
-#    if(err < (EPS)^0.65) break #############3for some reason I cannot get same precision, so MLHACK here as temp fix - precision seems to max out at 1e-11
-    if(err < EPS) break # DM: this seems to work for hymod example
+    if(err < EPS) break
   }
   if(i>1000) print(paste("convergence issue, only achieved:",err))
   return(list(u=u, s=s, v=v, nite=nite))
@@ -849,30 +837,30 @@ Triu=function(a){
   return(au)
 } # END Triu
 
-# Modified Gram-Schmidt process
-Qr=function(a,q,r){
-  # input real a(:,:)
-  #q=matrix(0.0,SIZE(a,1), SIZE(a,2))
-  #r=matrix(0.0,SIZE(a,2), SIZE(a,2))
-  #local
-  a0=matrix(0.0,SIZE(a,1), SIZE(a,2))
-  k=0;n=0
-
-  n = SIZE(a,2)
-  a0 = a
-  for(k in 1:n){
-    r[k,k] = Norm(a0[ ,k])
-    #       q(:,k) = a0(:,k) / r(k,k)
-#    ind=which(abs(a0[ ,k])>0.000000001)  #FIXME_DK: rough fix will need checks+refinement
-    ind = which(a0[,k]!=0.) # DM: this seems to work for now
-    if(length(ind)>0) q[ind,k] = a0[ind,k] / r[k,k]
-    if(k!=n){
-      r[k,(k+1):n] = MATMUL(q[ ,k], a0[ ,(k+1):n])
-      a0[ ,(k+1):n] = a0[ ,(k+1):n] - MATMUL(matrix(q[ ,k:k],nrow=n,ncol=1), matrix(r[k:k,(k+1):n],nrow=1,ncol=(n-k)))
-    }
-  }
-  return(list(q=q,r=r))
-} #END Qr
+# # Modified Gram-Schmidt process
+# Qr=function(a){
+#   # input real a(:,:)
+#   q=matrix(0.0,SIZE(a,1), SIZE(a,2))
+#   r=matrix(0.0,SIZE(a,2), SIZE(a,2))
+#   #local
+#   a0=matrix(0.0,SIZE(a,1), SIZE(a,2))
+#   k=0;n=0
+#
+#   n = SIZE(a,2)
+#   a0 = a
+#   for(k in 1:n){
+#     r[k,k] = Norm(a0[ ,k])
+#     #       q(:,k) = a0(:,k) / r(k,k)
+# #    ind=which(abs(a0[ ,k])>0.000000001)  #FIXME_DK: rough fix will need checks+refinement
+#     ind = which(a0[,k]!=0.) # DM: this seems to work for now
+#     if(length(ind)>0) q[ind,k] = a0[ind,k] / r[k,k]
+#     if(k!=n){
+#       r[k,(k+1):n] = MATMUL(q[ ,k], a0[ ,(k+1):n])
+#       a0[ ,(k+1):n] = a0[ ,(k+1):n] - MATMUL(matrix(q[ ,k:k],nrow=n,ncol=1), matrix(r[k:k,(k+1):n],nrow=1,ncol=(n-k)))
+#     }
+#   }
+#   return(list(q=q,r=r))
+# } #END Qr
 
 svdBackSub=function(m, n, U, W, V, b, x, error, message){
   # Solves Ax=b using SVD back substitution
