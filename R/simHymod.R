@@ -1,4 +1,14 @@
-simFunc_hymod = function(x,stateVal,nWarmUp,rain,pet){
+#' @title hymod simulation
+#' @description Simulation of hymod rainfall-runoff model
+#' @param x parameter values
+#' @param nWarmUp length of warmup period
+#' @param rain precipitation input (mm/day)
+#' @param pet potential evapotranspiration (mm/day)
+#' @param stateVal (optional) initial states
+#' @return Vector of simulated runoff
+#' @export
+simFunc_hymod = function(x,rain,pet,nWarmUp,stateVal=c(100.0,30.0,27.0,25.0,30.0,0.0,0.0,0.0)){
+  procnam = 'simFunc_hymod'
   S = vector(length=length(x))
   flexS=TRUE         # Allow fix of Smax
   #Assign parameters
