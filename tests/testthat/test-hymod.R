@@ -7,10 +7,10 @@ test_that('hymod', {
             xLo=c(1.,0.1,0.05,0.000001,0.000001),
             xHi=c(1000.,2.,0.95,0.99999,0.99999),
             simTarget=BassRiverData$Runoff.mm.day[365:length(BassRiverData$Date)],
-            stateVal=c(100.0,30.0,27.0,25.0,30.0,0.0,0.0,0.0),
             nWarmUp=365,
             rain=BassRiverData$Rain.mm,
-            pet=BassRiverData$ET.mm)
+            pet=BassRiverData$ET.mm,
+            cnvSettings=list(dump=0))
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
 
   # expected output based on F90 RGN hymod example

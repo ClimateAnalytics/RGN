@@ -10,7 +10,7 @@ test_that('rosenbrock', {
   tmp = rgn(simFunc=simFunc_rosenbrock,
             x0=c(-1.0,  0.0), xLo=c(-1.5, -1.0), xHi=c( 1.5,  3.0),
             simTarget=c(0,0),
-            cnvSettings=list(dump=10))
+            cnvSettings=list(dump=0))
   error=tmp$error;message=tmp$message;x=tmp$x;info=tmp$info
 
   # expected output based on F90 RGN Rosenbrock example
