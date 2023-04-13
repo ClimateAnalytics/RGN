@@ -2,11 +2,6 @@
 #
 # Purpose: Optimize weighted sum-of-squares objective function with Robust Gauss-Newton algorithm
 #
-# Programmer: George Kuczera, Youwei Qin, Dmitri Kavetski
-# Created: 21 May 2016 at Newcastle, Australia
-# Last modified: 15 July 2018 at Nanjing, China
-# Copyright, George Kuczera, Youwei Qin, Dmitri Kavetski, 2018-2023. All rights reserved.
-# Modified by Michael Leonard, Dec 2022 without permission
 # References
 # * Qin2018a: Youwei Qin, Kavetski Dmitri, George Kuczera (2018),
 #            A Robust Gauss-Newton algorithm for the optimization of hydrological models: From standard Gauss-Newton to Robust Gauss-Newton,
@@ -17,68 +12,57 @@
 #            Water Resources Research, accept
 #
 #******************************************************************
-# ---
-# Input
-#   p:          Number of parameters
-#   n:          Number of observations in calibration
-#   x0:         Initial parameters
-#   xLo:        Lower bounds on parameters
-#   xHi(:):     Upper bounds on parameters
-#   cnv:        Convergence data structure
-#   decFile:    Name of dumpfile
-# ---
-# Output
-#   info:       Run information data structure
-#   x(:):       Final parameters
-#   error       Error code, 0 = ok
-#   message:    Error message
-# ---
-# Notes
-#   This module follows fairly closely to the pseudocode in Qin2018a,
-#   Any issues or bugs, please contact the first author(Email:youwei.qin@uon.edu.au)
 
-NO=FALSE; YES=TRUE
+#NO=FALSE; YES=TRUE
 EPS=.Machine$double.eps
 
-rgnConvType=list()
-rgnConvType$iterMax=0
-rgnConvType$noReduction=0
-rgnConvType$noRelChangeF=0
-rgnConvType$noRelChangePar=0
-rgnConvType$fail=0
-rgnConvType$noRelChangeFTol=0.0
-rgnConvType$noRelChangeParTol=0.0
-rgnConvType$tolSafe=0.0
-rgnConvType$dumpResults=0
-rgnConvType$logFile=""
+setRgnConvType = function(){
+  rgnConvType=list()
+  rgnConvType$iterMax=0
+  rgnConvType$noReduction=0
+  rgnConvType$noRelChangeF=0
+  rgnConvType$noRelChangePar=0
+  rgnConvType$fail=0
+  rgnConvType$noRelChangeFTol=0.0
+  rgnConvType$noRelChangeParTol=0.0
+  rgnConvType$tolSafe=0.0
+  rgnConvType$dumpResults=0
+  rgnConvType$logFile=""
+  return(rgnConvType)
+}
 
-rgnInfoType=list()
-rgnInfoType$nIter=0
-rgnInfoType$termFlag=0
-rgnInfoType$nEval=0
-rgnInfoType$f=0.0
-rgnInfoType$cpuTime=0.0
-rgnInfoType$objTime=0.0
 
-rgnSetType=list()
-rgnSetType$gtol=0.0
-rgnSetType$stol=0.0
-rgnSetType$ftol=0.0
-rgnSetType$gtolMin=0.0
-rgnSetType$tol=0.0
-rgnSetType$tolFor=0.0
-rgnSetType$alpha=0.0
-rgnSetType$sigma=0.0
-rgnSetType$c1=0.0
-rgnSetType$rho=0.0
-rgnSetType$beta=0.0
-rgnSetType$hLow=0.0
-rgnSetType$hHiFrac=0.0
-rgnSetType$xScale=0.0
-rgnSetType$fScale=0.0
-rgnSetType$nls=0
+setRgnInfoType = function(){
+  rgnInfoType=list()
+  rgnInfoType$nIter=0
+  rgnInfoType$termFlag=0
+  rgnInfoType$nEval=0
+  rgnInfoType$f=0.0
+  rgnInfoType$cpuTime=0.0
+  rgnInfoType$objTime=0.0
+  return(rgnInfoType)
+}
 
-set <<- rgnSetType
+
+# rgnSetType=list()
+# rgnSetType$gtol=0.0
+# rgnSetType$stol=0.0
+# rgnSetType$ftol=0.0
+# rgnSetType$gtolMin=0.0
+# rgnSetType$tol=0.0
+# rgnSetType$tolFor=0.0
+# rgnSetType$alpha=0.0
+# rgnSetType$sigma=0.0
+# rgnSetType$c1=0.0
+# rgnSetType$rho=0.0
+# rgnSetType$beta=0.0
+# rgnSetType$hLow=0.0
+# rgnSetType$hHiFrac=0.0
+# rgnSetType$xScale=0.0
+# rgnSetType$fScale=0.0
+# rgnSetType$nls=0
+#
+# set <<- rgnSetType
 
 # mimic F90 functionality
 PRESENT=function(x=NULL){
@@ -175,7 +159,7 @@ ABS=function(x){abs(x)}
 # Initialize the RGN converge variables
 setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL){
   #optional arguments iterMax, dump, logFile
-  cnvSet=rgnConvType
+  cnvSet=setRgnConvType()
   #---
   #
   cnvSet$iterMax = 100; if(PRESENT(iterMax)) cnvSet$iterMax = iterMax
@@ -190,32 +174,33 @@ setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL){
   return(cnvSet)
 }
 
-  # Initialize the RGN constants to global variable
+  # Initialize the RGN constants
 setRgnConstants=function(alpha=NULL, beta=NULL, nls=NULL){
   # NOTE - Side-effect - global variable via <<- operator
   #set = rgnSetType
-  set$gtol <<- 1.0e-10
-  set$stol <<- 1.0e-11
-  set$ftol <<- 1.0e-10
-  set$gtolMin <<- 0.1
-  set$tol <<- 0.1
-  set$tolFor <<- 0.1
-  set$alpha <<- 0.001; if(PRESENT(alpha)) set$alpha <<- alpha
-  set$sigma <<- 1.0
-  set$c1 <<- 0.0001
-  set$rho <<- 0.6
-  set$nls <<- 4; if(PRESENT(nls)) set$nls <<- nls
-  set$beta <<- 10.0; if(PRESENT(beta)) set$beta <<- beta
-  set$hLow <<- 1.0e-8
-  set$hHiFrac <<- 0.5
-  set$xScale <<- 10.0
-  set$fScale <<- 1.0
+  rgnConstants = list()
+  rgnConstants$gtol = 1.0e-10
+  rgnConstants$stol = 1.0e-11
+  rgnConstants$ftol = 1.0e-10
+  rgnConstants$gtolMin = 0.1
+  rgnConstants$tol = 0.1
+  rgnConstants$tolFor = 0.1
+  rgnConstants$alpha = 0.001; if(PRESENT(alpha)) rgnConstants$alpha = alpha
+  rgnConstants$sigma = 1.0
+  rgnConstants$c1 = 0.0001
+  rgnConstants$rho = 0.6
+  rgnConstants$nls = 4; if(PRESENT(nls)) rgnConstants$nls = nls
+  rgnConstants$beta = 10.0; if(PRESENT(beta)) rgnConstants$beta = beta
+  rgnConstants$hLow = 1.0e-8
+  rgnConstants$hHiFrac = 0.5
+  rgnConstants$xScale = 10.0
+  rgnConstants$fScale = 1.0
+  return(rgnConstants)
 } # END setRgnConstants
 #
 goto1=function(procnam){
   return(list(error = 1, message = paste("f-",procnam,"RGN objFunc call failed")))
 }
-
 
 objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL,fitParLoc=NULL,...){
 
@@ -232,8 +217,8 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
   }
 
   sim = simFunc(x=xAll,...)
-  r = simTarget-sim
-  r = r[!is.na(r)]
+  r = weights*(simTarget-sim)
+  # r = r[!is.na(r)]
   f = sum(r^2)
   f = f/2.0
 
@@ -245,7 +230,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 }
 
 # this function deals with fixed parameters (that have same lower and upper bound)
-rgn_fixPars = function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL, weights=NULL, ...){
+rgn_fixPars = function(simFunc, x0, xLo, xHi, cnvSettings, simTarget, info, decFile=NULL, weights=NULL, ...){
 
   fixParLoc = fixParVal = fitParLoc = c()
   for (i in 1:length(x0)){
@@ -258,10 +243,11 @@ rgn_fixPars = function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL
   }
 
   tmp = rgn(simFunc=simFunc,
-           x0=x0[fitParLoc], xLo=xLo[fitParLoc], xHi=xHi[fitParLoc],
-           simTarget=simTarget,
-           cnv=cnv, info=info, fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
-
+            simTarget=simTarget,
+            x0=x0[fitParLoc], xLo=xLo[fitParLoc], xHi=xHi[fitParLoc],
+            weights=weights,
+            cnvSettings=cnvSettings,
+            fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
 
   x = tmp$x
   xAll = c()
@@ -274,24 +260,49 @@ rgn_fixPars = function(simFunc, x0, xLo, xHi, cnv, simTarget, info, decFile=NULL
 
 }
 
-#' Robust Gauss Newton optimization
+#' @title Robust Gauss Newton optimization
 #'
-#' \code{rgn} performs optimization of weighted-sum-of-squares (WSS) objective function using the Robust Gauss Newton algorithm
+#' @description \code{rgn} performs optimization of weighted-sum-of-squares (WSS) objective function using the Robust Gauss Newton algorithm
 #' @param simFunc is a function that simulates a (vector) response, with first argument the vector of parameters over which optimization is performed
 #' @param simTarget is the target vector that \code{simFunc} is trying to match
+#' @param weights is a vector of weights used in the WSS objective function
 #' @param x0 is the vector of initial parameters
 #' @param xLo is the lower bounds on parameters
 #' @param xHi is the upper bounds on parameters
-#' @param weights is a vector of weights used in the WSS objective function
 #' @param cnvSettings list of RGN settings \cr
 #'         \code{cnvSetting$iterMax} is maximum iterations, \cr
 #'         \code{cnvSetting$dump} is level of diagnostic outputs between 0 and 3 (0=none, 3=highest), \cr
 #'         \code{cnvSetting$logFile} is log file name
+#' @param ... other arguments to \code{simFunc()}
+#' @return List with optimal parameter set \code{x} and other RGN output \code{info}
+#' @examples
+#' # Example 1: Rosenbrock
+#' simFunc_rosenbrock=function(x) c(1.0-x[1],10.0*(x[2]-x[1]**2))
+#' rgnOut = rgn(simFunc=simFunc_rosenbrock,
+#'              x0=c(-1.0,  0.0), xLo=c(-1.5, -1.0), xHi=c( 1.5,  3.0),
+#'              simTarget=c(0,0))
+#' rgnOut$x #optimal parameters
+#' rgnOut$info$f #optimal objective function value
+#'
+#' # Example 2: Hymod
+#' data("BassRiver") # load Bass River hydrological data
+#' rgnOut = rgn(simFunc=simFunc_hymod,
+#'              x0=c(400.,0.5,0.1,0.2,0.1),
+#'              xLo=c(1.,0.1,0.05,0.000001,0.000001),
+#'              xHi=c(1000.,2.,0.95,0.99999,0.99999),
+#'              simTarget=BassRiverData$Runoff.mm.day[365:length(BassRiverData$Date)],
+#'              stateVal=c(100.0,30.0,27.0,25.0,30.0,0.0,0.0,0.0), # initial states for hymod
+#'              nWarmUp=365,                                       # warmup period
+#'              rain=BassRiverData$Rain.mm,                        # precip input
+#'              pet=BassRiverData$ET.mm)                           # PET input
+#' rgnOut$x #optimal parameters
+#' rgnOut$info$f #optimal objective function value
 #' @useDynLib RGN
 #' @export
-rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, ...){
+#'
+rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL, ...){
 
-  info=rgnInfoType
+  info = setRgnInfoType()
 
   cnv = setDefaultRgnConvergeSettings(iterMax=cnvSettings$iterMax, dump=cnvSettings$dump, logFile=cnvSettings$logFile)
 
@@ -367,7 +378,7 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
   }
 
   # Assign constants
-  setRgnConstants()
+  set = setRgnConstants()
   xScale = rep(set$xScale,p)
   hLo = set$hLow; hHi =  set$hHiFrac*(xHi-xLo)
   #
@@ -375,7 +386,7 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
   as[1:p] = rep(BF,p)  # Assume all initial parameters are free
   nIter = 0
   h = hHi
-  forceRelease = NO
+  forceRelease = FALSE
   noReduction = 0; noRelChangeF = 0; noRelChangePar = 0
   info$termFlag = 0; info$nEval = 0
   time[1]=Sys.time()
@@ -483,11 +494,11 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
 
       nf = sum(MERGE(1, 0, as == BF))
       if(nf == 0) {
-        forceRelease = YES
+        forceRelease = TRUE
       }else if(termCode != NUL_CON) {
-        forceRelease = YES
+        forceRelease = TRUE
       }else{
-        forceRelease = NO
+        forceRelease = FALSE
       }
     }
 
@@ -582,7 +593,7 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
     sig = MIN (set$sigma, 1.0)
     cons = set$c1*MIN(0.0, DOT_PRODUCT(delX,g))
     if(cnv$dumpResults >= 3) write(paste('Cons=                            ', cons),file=cnv$logFile,append=TRUE)
-    flag_ls = NO
+    flag_ls = FALSE
     for(i in 0: set$nls){
       xt = x + sig*delX
       tmp=objFuncCall(simFunc=simFunc,x=xt,simTarget=simTarget,weights=weights,...);rl=tmp$r;ft=tmp$f;time4fcall=tmp$tFunc #SUB2FUNC conversion
@@ -594,7 +605,7 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
         write(paste( 'ft+sig=                         ',ft + sig*cons),file=cnv$logFile,append=TRUE)
       }
       if(ft < f + sig*cons) {
-        xls = xt; fls = ft; flag_ls = YES
+        xls = xt; fls = ft; flag_ls = TRUE
         if(cnv$dumpResults >= 1) write(paste('Line search successful at iteration', i ,' with sigma=', sig),file=cnv$logFile,append=TRUE)
         break
       }else{
@@ -611,7 +622,7 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
     # Update best variables
     if(fBest < fls) {    # Jacobian evaluation produced better f than line search
       x = xBest; f = fBest
-      flag_ls = YES
+      flag_ls = TRUE
     }else{
       x = xls; f = fls
       #CALL updateBest (fls, xls, rl)
@@ -657,7 +668,7 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
       }
       noRelChangePar = MERGE (noRelChangePar+1, 0, maxRelPar >= 0.0 & maxRelPar < cnv$noRelChangeParTol)
       if(noRelChangePar >= cnv$noRelChangePar) {
-        info$termFlag = 4; EXIT
+        info$termFlag = 4; break
       }
     }
   } #END iterLoop
@@ -666,9 +677,9 @@ rgn=function(simFunc, simTarget, x0, xLo, xHi, weights=NULL, cnvSettings=NULL, .
   # Save optional information
   time[2]=Sys.time(); info$cpuTime = time[2] - time[1];info$objTime=time4fcallAcc
   info$nIter = nIter; info$f = f
-  write(paste('RGN ended with termination code: ', info$termFlag, ' f=', info$f),file=cnv$logFile,append=TRUE)
   if(cnv$dumpResults >= 1) {
     write(paste('>>>>> RGN ended with termination code: ', info$termFlag),file=cnv$logFile,append=TRUE)
+    write(paste('      f=', info$f),file=cnv$logFile,append=TRUE)
     write(paste('      number of function calls:    ', info$nEval),file=cnv$logFile,append=TRUE)
     write(paste('      cpu time (sec):               ', info$cpuTime),file=cnv$logFile,append=TRUE)
   }
@@ -837,6 +848,7 @@ Triu=function(a){
   return(au)
 } # END Triu
 
+# following function now coded in F90.
 # # Modified Gram-Schmidt process
 # Qr=function(a){
 #   # input real a(:,:)
