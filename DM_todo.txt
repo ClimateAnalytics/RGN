@@ -1,0 +1,14 @@
+DESCRIPTION
+- author names, roles, email addresses,etc
+- description of package
+- url
+- issues link
+- license
+
+DATA
+- BassRiver reference and description
+
+RGN CODE
+- tidy up, add comments
+
+
