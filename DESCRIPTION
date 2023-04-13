@@ -1,13 +1,21 @@
 Package: RGN
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
+Title: Robust-Gauss Newton (RGN) optimization of weighted sum-of-squares objective function
+Version: 0.0.1
+Author: David McInerney,
+        Youwei Qin,
+        Michael Leonard,
+        Dmitri Kavetski,
+        George Kuczera
+Maintainer: David McInerney <dmcinern@gmail.com>
+Description: XXXXX More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+License: GPL-3 
+URL: XXXXX
 Encoding: UTF-8
 LazyData: true
-NeedsCompilation: yes
-
+NeedsCompilation: no
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+RoxygenNote: 7.2.3
