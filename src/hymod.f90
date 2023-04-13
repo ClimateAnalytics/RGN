@@ -15,15 +15,6 @@
 ! ---
 ! Notes
 !   Any issues or bugs, please contact the first author(Email:youwei.qin@uon.edu.au)
-!
-!MODULE HyMod_Mod
-!   IMPLICIT NONE
-!   SAVE
-!   PRIVATE
-!   PUBLIC :: Hymod
-!   INTEGER(mik),PARAMETER::isoil=1,islo=2,iqk1=3,iqk2=4,iqk3=5
-
-!   CONTAINS
 
    SUBROUTINE hymod_f90 (precip, pet, S, &
                      Smax, b, alpha, Ks, Kq, Qs, Qq, Q, err)
@@ -225,4 +216,3 @@
     ! End procedure here
     ENDSUBROUTINE checkFeasHYMOD
    !----------------------------------------------------
-!END MODULE HyMod_Mod
