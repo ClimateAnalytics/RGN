@@ -1,2 +1,12 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.Rhistory$
+^examples$
+^notes$
+^Rprof\.out$
+^.\*.RData$
+^ML_notes\.txt$
+^foreSIGHT_latent_compare_opt\.RData$
+^foreSIGHT_wgen_compare_opt\.RData$
+^rgnLog\.txt$
+^DM_todo\.txt$
