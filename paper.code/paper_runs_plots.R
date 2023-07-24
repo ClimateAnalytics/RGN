@@ -768,7 +768,7 @@ clim_ref$P = clim_ref$P[,'X23300']
 
 #optimizerList = c('RGN','CMAES','NLSLM','GA','SCE','optim.LBFGSB')
 #optimizerList = c('RGN','CMAES','NLSLM','GA','SCE','optim.LBFGSB','NMKB')
-optimizerList = c('RGN')
+optimizerList = c('RGN','SCE','optim.LBFGSB','NMKB')
 # #optimizerList = c('Rvmmin','optim.LBFGSB')
 # optimizerList = c('Rcgmin','NLSLM','NMKB','RGN','optim.LBFGSB')
 # #optimizerNmulti = 100
@@ -786,20 +786,22 @@ modelTypeList = c('latent')
 # ------------
 # expt 1
 
-# modelParameterVariation = 'annual'
-# attList =  c("P_ann_tot_m","P_ann_P99","P_ann_avgWSD_m","P_ann_nWet_m")
-# nYrs = 10
-#
-# name = paste0(modelParameterVariation,'.',nYrs)
-# options = list(attList=attList,nYrs=nYrs,seedID=seedID,
-#                modelTypeList=modelTypeList,modelParameterVariation=modelParameterVariation,
-#                optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
-#                par=par,freePars=freePars)
-# sim = doRuns(clim_ref=clim_ref,options=options)
-# #fname = paste0(dirname,name,'.RData')
-# #save.image(file=fname)
-#
-# plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
+modelParameterVariation = 'annual'
+attList =  c("P_ann_tot_m","P_ann_P99","P_ann_avgWSD_m","P_ann_nWet_m")
+nYrs = 10
+
+name = paste0(modelParameterVariation,'.',nYrs)
+options = list(attList=attList,nYrs=nYrs,seedID=seedID,
+               modelTypeList=modelTypeList,modelParameterVariation=modelParameterVariation,
+               optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
+               par=par,freePars=freePars)
+sim = doRuns(clim_ref=clim_ref,options=options)
+#fname = paste0(dirname,name,'.RData')
+#save.image(file=fname)
+
+plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
+
+pause
 
 # ------------
 # expt 2 new
