@@ -145,6 +145,30 @@ setupControlFile = function(modelType,modelParameterVariation,optimizer,optimize
         controlFileList$modelParameterBounds$P[[parName[p]]] = c(parVal,parVal)
       }
     }
+  } else if ((modelType=='latent')&(modelParameterVariation=='annual')){
+    controlFileList$modelParameterBounds$P = list()
+    controlFileList$modelParameterBounds$P$lambda = c(1.3,3.6)
+    controlFileList$modelParameterBounds$P$mu = c(-13,1.6)
+    controlFileList$modelParameterBounds$P$sigma = c(1.3,10.2)
+    controlFileList$modelParameterBounds$P$alpha = c(0.18,0.9)
+  }  else if ((modelType=='latent')&(modelParameterVariation=='harmonic')){
+    controlFileList$modelParameterBounds$P = list()
+    controlFileList$modelParameterBounds$P$alpha_m = c(0.18,0.9) # rho
+    controlFileList$modelParameterBounds$P$alpha_amp = c(0,0)
+    controlFileList$modelParameterBounds$P$alpha_ang = c(0,0)
+#    controlFileList$modelParameterBounds$P$alpha_amp = c(0,0.5)
+#    controlFileList$modelParameterBounds$P$alpha_ang = c(0,6.28)
+    controlFileList$modelParameterBounds$P$sigma_m = c(1.5,10.) # sigma
+    controlFileList$modelParameterBounds$P$sigma_amp = c(0.04,2.7)
+    controlFileList$modelParameterBounds$P$sigma_ang = c(0.02,4.5)
+    controlFileList$modelParameterBounds$P$mu_m = c(-10.8,0.8) # mu
+    controlFileList$modelParameterBounds$P$mu_amp = c(0.18,8.)
+    controlFileList$modelParameterBounds$P$mu_ang = c(0.11,4.4)
+    controlFileList$modelParameterBounds$P$lambda_m = c(1.4,3.1) # beta
+    controlFileList$modelParameterBounds$P$lambda_amp = c(0.02,0.8)
+    #controlFileList$modelParameterBounds$P$lambda_amp = c(0.02,2)
+    controlFileList$modelParameterBounds$P$lambda_ang = c(0.33,4.2)
+    #controlFileList$modelParameterBounds$P$lambda_ang = c(0.,6.28)
   }
 
   controlFileJSON <- jsonlite::toJSON(controlFileList, pretty = TRUE, auto_unbox = TRUE)
@@ -294,6 +318,7 @@ plot_OF_calls = function(sim,modelTypeList=NULL,
 #  y = seq(1,optimizerNmulti)/optimizerNmulti
 
   npar = length(sim[[modelTypeList[1]]][[optimizerList[1]]]$Rep1$Target1$par)
+  nAtt = length(sim[[modelTypeList[1]]][[optimizerList[1]]]$Rep1$Target1$attSim)
 
   if (length(optimizerList)==1){colList = 'black'}
 
@@ -304,7 +329,7 @@ plot_OF_calls = function(sim,modelTypeList=NULL,
     for (o in 1:length(optimizerListAll)){
       optimizer = optimizerListAll[o]
       x = -sim[[modelType]][[optimizer]]$Rep1$Target1$score
-      if (OF_rmse){x = x/sqrt(npar)}
+      if (OF_rmse){x = x/sqrt(nAtt)}
       if (x < best[m]){best[m]=x}
     }
   }
@@ -315,7 +340,7 @@ plot_OF_calls = function(sim,modelTypeList=NULL,
     for (o in 1:length(optimizerList)){
       optimizer = optimizerList[o]
       x = sim[[modelType]][[optimizer]]$Rep1$Target1$fMulti
-      if (OF_rmse){x = x/sqrt(npar)}
+      if (OF_rmse){x = x/sqrt(nAtt)}
       s = sort(x,index.return=T)
       x.sort = s$x
       y = seq(1,length(x))/length(x)
@@ -629,13 +654,14 @@ plot_relMulti = function(sim,scen,thresh,xlim_calls=1e9,OF_rmse=T,colList=colLis
 
   Nms = length(sim[[scen]][[1]]$Rep1$Target1$fMulti)
   Np = length(sim[[scen]][[1]]$Rep1$Target1$par)
+  Natt = length(sim[[scen]][[1]]$Rep1$Target1$attSim)
 
   N = 1:Nms
 
   pMulti = aveCallsMulti = list()
   for (optimizer in optimizerList){
     f = sim[[scen]][[optimizer]]$Rep1$Target1$fMulti
-    if (OF_rmse){f = f / sqrt(Np)}
+    if (OF_rmse){f = f / sqrt(Natt)}
     p1 = length(which(f<thresh))/length(f)
     pMulti[[optimizer]] = 1-(1-p1)^N
     calls = sim[[scen]][[optimizer]]$Rep1$Target1$callsMulti
@@ -662,6 +688,7 @@ plot_relMulti_1 = function(sim,scen,thresh_list,pThresh=0.95,OF_rmse=T,colList=c
 
   Nms = length(sim[[scen]][[1]]$Rep1$Target1$fMulti)
   Np = length(sim[[scen]][[1]]$Rep1$Target1$par)
+  Natt = length(sim[[scen]][[1]]$Rep1$Target1$attSim)
 
   N = 1:Nms
 
@@ -669,7 +696,7 @@ plot_relMulti_1 = function(sim,scen,thresh_list,pThresh=0.95,OF_rmse=T,colList=c
   minCalls = list()
   for (optimizer in optimizerList){
     f = sim[[scen]][[optimizer]]$Rep1$Target1$fMulti
-    if (OF_rmse){f = f / sqrt(Np)}
+    if (OF_rmse){f = f / sqrt(Natt)}
     calls = sim[[scen]][[optimizer]]$Rep1$Target1$callsMulti
     aveCalls = mean(calls)
     minCalls[[optimizer]] = c()
@@ -718,6 +745,7 @@ plot_relMulti_2 = function(sim,scen,pThresh=0.95,OF_rmse=T,
 
   Nms = length(sim[[scen]][[1]]$Rep1$Target1$fMulti)
   Np = length(sim[[scen]][[1]]$Rep1$Target1$par)
+  Natt = length(sim[[scen]][[1]]$Rep1$Target1$attSim)
 
   N = 1:Nms
 
@@ -725,7 +753,7 @@ plot_relMulti_2 = function(sim,scen,pThresh=0.95,OF_rmse=T,
   callsMulti = threshMulti = list()
   for (optimizer in optimizerList){
     f = sim[[scen]][[optimizer]]$Rep1$Target1$fMulti
-    if (OF_rmse){f = f / sqrt(Np)}
+    if (OF_rmse){f = f / sqrt(Natt)}
     calls = sim[[scen]][[optimizer]]$Rep1$Target1$callsMulti
     aveCalls = mean(calls)
     threshMulti[[optimizer]] = callsMulti[[optimizer]] = c()
@@ -768,20 +796,25 @@ clim_ref$P = clim_ref$P[,'X23300']
 
 #optimizerList = c('RGN','CMAES','NLSLM','GA','SCE','optim.LBFGSB')
 #optimizerList = c('RGN','CMAES','NLSLM','GA','SCE','optim.LBFGSB','NMKB')
-optimizerList = c('RGN','SCE','optim.LBFGSB','NMKB')
+#optimizerList = c('RGN','CMAES','GA','SCE','optim.LBFGSB','NMKB')
+optimizerList = c('RGN','SCE','NMKB')
+#optimizerList = c('RGN','optim.LBFGSB','NMKB')
+#optimizerList = c('GA')
+#optimizerList = c('optim.LBFGSB')
+#optimizerList = c('optim.LBFGSB')
 # #optimizerList = c('Rvmmin','optim.LBFGSB')
 # optimizerList = c('Rcgmin','NLSLM','NMKB','RGN','optim.LBFGSB')
 # #optimizerNmulti = 100
 optimizerListAll = optimizerList
 
-optimizerNmulti = 10
+optimizerNmulti = 30
 
 # # ------------
 #
 # # stochastic model
 # #modelTypeList = c('wgen','latent')
-#modelTypeList = c('wgen')
-modelTypeList = c('latent')
+modelTypeList = c('wgen')
+#modelTypeList = c('latent')
 #
 # ------------
 # expt 1
@@ -799,30 +832,31 @@ sim = doRuns(clim_ref=clim_ref,options=options)
 #fname = paste0(dirname,name,'.RData')
 #save.image(file=fname)
 
-plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
+# plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
+
 
 pause
 
 # ------------
 # expt 2 new
 
-modelParameterVariation = 'annual'
-attList =  c("P_ann_tot_m","P_ann_P99_m10yrBlock","P_ann_avgWSD_m","P_ann_nWet_m")
-nYrs = 1000
-optimizerNmulti = 3
-
-name = paste0(modelParameterVariation,'.',nYrs)
-options = list(attList=attList,nYrs=nYrs,seedID=seedID,
-               modelTypeList=modelTypeList,modelParameterVariation=modelParameterVariation,
-               optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
-               par=par,freePars=freePars)
-sim = doRuns(clim_ref=clim_ref,options=options)
-#fname = paste0(dirname,name,'.RData')
-#save.image(file=fname)
-
-plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
-
-pause
+# modelParameterVariation = 'annual'
+# attList =  c("P_ann_tot_m","P_ann_P99_m10yrBlock","P_ann_avgWSD_m","P_ann_nWet_m")
+# nYrs = 1000
+# optimizerNmulti = 3
+#
+# name = paste0(modelParameterVariation,'.',nYrs)
+# options = list(attList=attList,nYrs=nYrs,seedID=seedID,
+#                modelTypeList=modelTypeList,modelParameterVariation=modelParameterVariation,
+#                optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
+#                par=par,freePars=freePars)
+# sim = doRuns(clim_ref=clim_ref,options=options)
+# #fname = paste0(dirname,name,'.RData')
+# #save.image(file=fname)
+#
+# plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
+#
+# pause
 
 #
 # # ------------
@@ -858,25 +892,49 @@ pause
 # save.image(file=fname)
 #
 # # ------------
-# # expt 3
-#
-# modelParameterVariation = 'harmonic'
-# attList =  c("P_DJF_tot_m","P_DJF_P99","P_DJF_avgWSD_m","P_DJF_nWet_m",
-#              "P_MAM_tot_m","P_MAM_P99","P_MAM_avgWSD_m","P_MAM_nWet_m",
-#              "P_JJA_tot_m","P_JJA_P99","P_JJA_avgWSD_m","P_JJA_nWet_m",
-#              "P_SON_tot_m","P_SON_P99","P_SON_avgWSD_m","P_SON_nWet_m")
-# nYrs = 10
-#
-# name = paste0(modelParameterVariation,'.',nYrs)
-# options = list(attList=attList,nYrs=nYrs,seedID=seedID,
-#                modelTypeList=modelTypeList,modelParameterVariation=modelParameterVariation,
-#                optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
-#                par=par,freePars=freePars)
-# sim = doRuns(clim_ref=clim_ref,options=options)
-# fname = paste0(dirname,name,'.RData')
-# save.image(file=fname)
-#
-# pause
+# expt 3
+
+modelParameterVariation = 'harmonic'
+attList =  c("P_DJF_tot_m","P_DJF_P99","P_DJF_avgWSD_m","P_DJF_nWet_m",
+             "P_MAM_tot_m","P_MAM_P99","P_MAM_avgWSD_m","P_MAM_nWet_m",
+             "P_JJA_tot_m","P_JJA_P99","P_JJA_avgWSD_m","P_JJA_nWet_m",
+             "P_SON_tot_m","P_SON_P99","P_SON_avgWSD_m","P_SON_nWet_m")
+nYrs = 10
+
+name = paste0(modelParameterVariation,'.',nYrs)
+options = list(attList=attList,nYrs=nYrs,seedID=seedID,
+               modelTypeList=modelTypeList,modelParameterVariation=modelParameterVariation,
+               optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
+               par=par,freePars=freePars)
+sim = doRuns(clim_ref=clim_ref,options=options)
+#fname = paste0(dirname,name,'.RData')
+#save.image(file=fname)
+
+plot_OF_calls(sim,ymax_OF = 1,ymax_calls = 1e4)
+
+maxCalls = 0
+for (optimizer in optimizerList){
+  for (r in 1:optimizerNmulti){
+    # print(sim$latent[[1]]$Rep1$Target1$callsMultiTrace[[r]])
+    maxCalls = max(maxCalls,sim$latent[[optimizer]]$Rep1$Target1$callsMultiTrace[[r]])
+  }
+}
+
+
+#plot(x=NULL,xlim=c(0,maxCalls),ylim=c(1e-4,1),main=optimizerList[1],log='y')
+plot(x=NULL,xlim=c(0,maxCalls),ylim=c(0,2),main=optimizerList[1],xaxs='i',yaxs='i')
+for (o in 1:length(optimizerList)){
+  optimizer = optimizerList[o]
+  for (r in 1:optimizerNmulti){
+    x = sim$latent[[optimizer]]$Rep1$Target1$callsMultiTrace[[r]]
+    y = -sim$latent[[optimizer]]$Rep1$Target1$fMultiTrace[[r]]
+    lines(x,y,col=colListDefault[o])
+    points(max(x),min(y),col=colListDefault[o])
+  }
+}
+legend('topright',optimizerList,col=colListDefault[1:length(optimizerList)],lty=1)
+
+pause
 #
 # ###########################################################
 #
