@@ -207,16 +207,17 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
   timeObj = vector(length=2)
   timeObj[1] = Sys.time()
 
-  # deal with fixed and fitted pars
-  if (!is.null(fixParLoc)){
-    xAll = c()
-    xAll[fixParLoc] = fixParVal
-    xAll[fitParLoc] = x
-  } else {
-    xAll = x
-  }
+  # # deal with fixed and fitted pars
+  # if (!is.null(fixParLoc)){
+  #   xAll = c()
+  #   xAll[fixParLoc] = fixParVal
+  #   xAll[fitParLoc] = x
+  # } else {
+  #   xAll = x
+  # }
 
-  sim = simFunc(x=xAll,...)
+#  sim = simFunc(x=xAll,...)
+  sim = simFunc(x=x,...)
   r = weights*(simTarget-sim)
   # r = r[!is.na(r)]
   f = sum(r^2)
@@ -225,40 +226,41 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
   timeObj[2] = Sys.time()
   timeFunc=timeObj[2]-timeObj[1]
   outObjFunc = list(r=r, f=f, timeFunc=timeFunc) # DM to do: add error number and message to this
+
   return(outObjFunc)
 
 }
 
-# this function deals with fixed parameters (that have same lower and upper bound)
-rgn_fixPars = function(simFunc, x0, xLo, xHi, cnvSettings, simTarget, info, decFile=NULL, weights=NULL, ...){
-
-  fixParLoc = fixParVal = fitParLoc = c()
-  for (i in 1:length(x0)){
-    if (xLo[i]==xHi[i]){
-      fixParLoc = c(fixParLoc,i)
-      fixParVal = c(fixParVal,xLo[i])
-    } else{
-      fitParLoc = c(fitParLoc,i)
-    }
-  }
-
-  tmp = rgn(simFunc=simFunc,
-            simTarget=simTarget,
-            x0=x0[fitParLoc], xLo=xLo[fitParLoc], xHi=xHi[fitParLoc],
-            weights=weights,
-            cnvSettings=cnvSettings,
-            fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
-
-  x = tmp$x
-  xAll = c()
-  xAll[fixParLoc] = fixParVal
-  xAll[fitParLoc] = x
-
-  tmp$x = xAll
-
-  return(tmp)
-
-}
+# # this function deals with fixed parameters (that have same lower and upper bound)
+# rgn_fixPars = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL, ...){
+#
+#   fixParLoc = fixParVal = fitParLoc = c()
+#   for (i in 1:length(x0)){
+#     if (xLo[i]==xHi[i]){
+#       fixParLoc = c(fixParLoc,i)
+#       fixParVal = c(fixParVal,xLo[i])
+#     } else{
+#       fitParLoc = c(fitParLoc,i)
+#     }
+#   }
+#
+#   tmp = rgn(simFunc=simFunc,
+#             simTarget=simTarget,
+#             x0=x0[fitParLoc], xLo=xLo[fitParLoc], xHi=xHi[fitParLoc],
+#             weights=weights,
+#             cnvSettings=cnvSettings,
+#             fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
+#
+#   x = tmp$x
+#   xAll = c()
+#   xAll[fixParLoc] = fixParVal
+#   xAll[fitParLoc] = x
+#
+#   tmp$x = xAll
+#
+#   return(tmp)
+#
+# }
 
 #' @title Robust Gauss Newton optimization
 #'
@@ -365,7 +367,7 @@ rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL,
   hLo=rep(0.0,p)
   hHi=rep(0.0,p)
   x0ldbest=rep(0.0,p)
-  fOptSeries=rep(0.0,cnv$iterMax)
+  fOptSeries=c()
   delXAct=rep(0.0,p)
 
   if(cnv$dumpResults >= 1){ # Fortran formats are not relevant in R, need to swap over to fortmat() function
@@ -418,9 +420,10 @@ rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL,
     #
     # Get Jacobian and update best function result
     xh = x; xl = x; r = rBest
+
     for(k in 1:p){
       xh[k] = x[k] + h[k]; xh[k] = MIN(xHi[k], xh[k])
-      if(cnv$dumpResults >= 2) write(paste('Forward Jacoian sample point:   ', paste(xh,collapse=" ")),file=cnv$logFile,append=TRUE)
+      if(cnv$dumpResults >= 2) write(paste('Forward Jacobian sample point:   ', paste(xh,collapse=" ")),file=cnv$logFile,append=TRUE)
       tmp=objFuncCall(simFunc=simFunc,x=xh,simTarget=simTarget,weights=weights,...); fh=tmp$f;rh=tmp$r;time4fcall=tmp$tFunc #SUB2FUNC conversion
       info$nEval = info$nEval + 1; if(error !=0) return(goto1(procnam)); tmp=updateBest(fh, xh, rh,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
       xl[k] = x[k] - h[k]; xl[k] = MAX(xLo[k], xl[k])
@@ -433,6 +436,11 @@ rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL,
       xh[k] = x[k]; xl[k] = x[k]
       if(cnv$dumpResults >= 2) write(paste('Jacobian matrix column:          ', k, fh, fl),file=cnv$logFile,append=TRUE)
     }
+
+    if (sum(abs(Ja))==0){
+      info$termFlag = 5; break
+    }
+
     #
     # Calculate gradient and Hessian
     for(i in 1:p){
@@ -628,6 +636,9 @@ rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL,
       #CALL updateBest (fls, xls, rl)
       tmp=updateBest(fls, xls, rl,fBest);if(tmp$update){fBest=tmp$fBest;xBest=tmp$xBest;rBest=tmp$rBest} #SUB2FUNC conversion
     }
+
+    info$nEvalSeries[nIter] = info$nEval
+
     #
     # Store the value of best objective function for termination check
     fOptSeries[nIter] = fBest
@@ -671,12 +682,13 @@ rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL,
         info$termFlag = 4; break
       }
     }
+
   } #END iterLoop
 
   #
   # Save optional information
   time[2]=Sys.time(); info$cpuTime = time[2] - time[1];info$objTime=time4fcallAcc
-  info$nIter = nIter; info$f = f
+  info$nIter = nIter; info$f = f; info$fOptSeries = fOptSeries
   if(cnv$dumpResults >= 1) {
     write(paste('>>>>> RGN ended with termination code: ', info$termFlag),file=cnv$logFile,append=TRUE)
     write(paste('      f=', info$f),file=cnv$logFile,append=TRUE)
