@@ -15,10 +15,13 @@ setupModelParNames = function(){
   return(modelParNames)
 }
 
+# determine model parameter names
+modelParNames = setupModelParNames()
+
 ###########################################################
 
 setupControlFile = function(modelType,modelParameterVariation,optimizer,optimizerNmulti,
-                            par=NULL,freePars=NULL){
+                            par=NULL,freePars=NULL,optimizerSeed=NULL){
 
   # setup control file
   controlFileList = list()
@@ -38,6 +41,10 @@ setupControlFile = function(modelType,modelParameterVariation,optimizer,optimize
   }
 
   controlFileList$optimisationArguments$nMultiStart = optimizerNmulti
+
+  if (!is.null(optimizerSeed)){
+    controlFileList$optimisationArguments$seed <- optimizerSeed
+  }
 
   if(optimizer=='GA'){
     controlFileList$optimisationArguments$pcrossover = 0.8
@@ -118,11 +125,11 @@ setupExpSpace = function(attList){
 simRun = function(clim_ref,attList,nYrs,seedID=1,
                   modelType,modelParameterVariation,
                   optimizer,optimizerNmulti,
-                  par=NULL,freePars=NULL,plotScen=F){
+                  par=NULL,freePars=NULL,plotScen=F,optimizerSeed=optimizerSeed){
 
   setupControlFile(modelType=modelType,modelParameterVariation=modelParameterVariation,
                    optimizer=optimizer,optimizerNmulti=optimizerNmulti,
-                   par=par,freePars=freePars)
+                   par=par,freePars=freePars,optimizerSeed=optimizerSeed)
   expSpace = setupExpSpace(attList=attList)
 
   sim <- generateScenarios(reference = clim_ref,   # reference time series
@@ -154,9 +161,127 @@ doRuns = function(clim_ref,options){
                                              modelParameterVariation=options$modelParameterVariation,
                                              optimizer=optimizer,
                                              optimizerNmulti=options$optimizerNmulti,
-                                             par=options$par,freePars=options$freePars)
+                                             par=options$par,freePars=options$freePars,
+                                             optimizerSeed=options$optimizerSeed)
     }
   }
 
   return(sim)
 }
+
+#########################
+
+doRunsPar = function(clim_ref,options){
+
+  library(foreach)
+  library(doParallel)
+
+  nChunks = options$nChunks
+  optimizerNmulti = options$optimizerNmulti
+
+  optimizerNmultiChunk =optimizerNmulti / nChunks
+
+  slurm_ntasks <- as.numeric(Sys.getenv("SLURM_NTASKS")) # Obtain environment variable SLURM_NTASKS
+  if (!is.na(slurm_ntasks)) {
+    cores = slurm_ntasks # if slurm_ntasks is numerical, then assign it to cores
+  } else {
+    cores = 1
+    #    stop("Cores not found")
+  }
+
+  c1 <- makeCluster(cores)
+  registerDoParallel(c1)
+
+  simAll <- foreach (chunk=1:nChunks) %dopar% {
+
+    source(paste0(options$paper.code.dir,'setup_paths_libs.R'))
+    source(paste0(options$paper.code.dir,'run_settings.R'))
+
+    optimizerSeed = ((chunk-1)*optimizerNmultiChunk+1):(chunk*optimizerNmultiChunk)
+
+    print(optimizerSeed)
+
+    optionsPar = options
+    optionsPar$optimizerNmulti=optimizerNmultiChunk
+    optionsPar$optimizerSeed=optimizerSeed
+
+    to.simAll = doRuns(clim_ref=clim_ref,options=optionsPar)
+  }
+
+  stopCluster(c1)
+
+  simM = list()
+  simM$options = list()
+  simM$options$optimizerList = optimizerList
+  simM$options$optimizerNmulti = optimizerNmulti
+  simM[[modelType]] = list()
+  for (optimizer in optimizerList){
+    simM[[modelType]][[optimizer]] = list()
+    simM[[modelType]][[optimizer]]$Rep1 = list()
+    simM[[modelType]][[optimizer]]$Rep1$Target1 = list()
+    simM[[modelType]][[optimizer]]$Rep1$Target1$fMulti = c()
+    simM[[modelType]][[optimizer]]$Rep1$Target1$callsMulti = c()
+    simM[[modelType]][[optimizer]]$Rep1$Target1$parsMulti = c()
+    simM[[modelType]][[optimizer]]$Rep1$Target1$callsTraceMulti = list()
+    simM[[modelType]][[optimizer]]$Rep1$Target1$fTraceMulti = list()
+  }
+  score_best = -999
+  for (chunk in 1:nChunks){
+    for (optimizer in optimizerList){
+      simM[[modelType]][[optimizer]]$Rep1$Target1$fMulti =
+        c(simM[[modelType]][[optimizer]]$Rep1$Target1$fMulti,
+          simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$fMulti)
+      simM[[modelType]][[optimizer]]$Rep1$Target1$callsMulti =
+        c(simM[[modelType]][[optimizer]]$Rep1$Target1$callsMulti,
+          simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$callsMulti)
+      simM[[modelType]][[optimizer]]$Rep1$Target1$parsMulti =
+        rbind(simM[[modelType]][[optimizer]]$Rep1$Target1$parsMulti,
+              simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$parsMulti)
+      for (r in 1:optimizerNmultiChunk){
+        rNow = r+(chunk-1)*optimizerNmultiChunk
+        simM[[modelType]][[optimizer]]$Rep1$Target1$callsTraceMulti[[rNow]] =
+          simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$callsTraceMulti[[r]]
+        simM[[modelType]][[optimizer]]$Rep1$Target1$fTraceMulti[[rNow]] =
+          simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$fTraceMulti[[r]]
+      }
+      if (simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$score > score_best){
+        score_best = simAll[[chunk]][[modelType]][[optimizer]]$Rep1$Target1$score
+        chunk_best = chunk
+      }
+    }
+  }
+  for (optimizer in optimizerList){
+    simM[[modelType]][[optimizer]]$Rep1$Target1$score = simAll[[chunk_best]][[modelType]][[optimizer]]$Rep1$Target1$score
+    simM[[modelType]][[optimizer]]$Rep1$Target1$par = simAll[[chunk_best]][[modelType]][[optimizer]]$Rep1$Target1$par
+    simM[[modelType]][[optimizer]]$Rep1$Target1$attSim = simAll[[chunk_best]][[modelType]][[optimizer]]$Rep1$Target1$attSim
+    simM[[modelType]][[optimizer]]$Rep1$Target1$P = simAll[[chunk_best]][[modelType]][[optimizer]]$Rep1$Target1$P
+  }
+
+  return(simM)
+
+}
+
+########################
+
+check_sim = function(sim1,sim2){
+
+  if(!(all(sim1$options$optimizerList == sim2$options$optimizerList))){browser()}
+  if(!(all(sim1$options$optimizerNmulti == sim2$options$optimizerNmulti))){browser()}
+  for (optimizer in optimizerList){
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$fMulti == sim2[[modelType]][[optimizer]]$Rep1$Target1$fMulti))){browser()}
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$callsMulti == sim2[[modelType]][[optimizer]]$Rep1$Target1$callsMulti))){browser()}
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$parsMulti == sim2[[modelType]][[optimizer]]$Rep1$Target1$parsMulti))){browser()}
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$score == sim2[[modelType]][[optimizer]]$Rep1$Target1$score))){browser()}
+    for (r in 1:optimizerNmulti){
+      if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$callsTraceMulti[[r]] == sim2[[modelType]][[optimizer]]$Rep1$Target1$callsTraceMulti[[r]]))){browser()}
+      if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$fTraceMulti[[r]] == sim2[[modelType]][[optimizer]]$Rep1$Target1$fTraceMulti[[r]]))){browser()}
+    }
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$par == sim2[[modelType]][[optimizer]]$Rep1$Target1$par))){browser()}
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$attSim == sim2[[modelType]][[optimizer]]$Rep1$Target1$attSim))){browser()}
+    if(!(all(sim1[[modelType]][[optimizer]]$Rep1$Target1$P$sim == sim2[[modelType]][[optimizer]]$Rep1$Target1$P$sim))){browser()}
+  }
+}
+
+
+#########################
+

@@ -1,4 +1,8 @@
-source('C:/Users/a1065639/Work/RGN/paper.code/setup.R')
+rm(list=ls())
+
+paper.code.dir = 'C:/Users/a1065639/Work/RGN/paper.code/'
+source(paste0(paper.code.dir,'setup_paths_libs.R'))
+source(paste0(paper.code.dir,'run_settings.R'))
 
 modelType = 'latent'
 fname1 = paste0(out.dir,'expt_1.latent.annual.10yrs.10multiStart.RData')

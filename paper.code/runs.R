@@ -1,14 +1,22 @@
-source('C:/Users/a1065639/Work/RGN/paper.code/setup.R')
+rm(list=ls())
+
+paper.code.dir = 'C:/Users/a1065639/Work/RGN/paper.code/'
+source(paste0(paper.code.dir,'setup_paths_libs.R'))
+source(paste0(paper.code.dir,'run_settings.R'))
+
+# ------------
 
 #args = commandArgs(trailingOnly=TRUE)
 
 # expt = args[1]
 # modelTypeList = args[2]
 # optimizerNmulti = as.integer(args[3])
+# nChunks = as.integer(args[4])
 
 expt = 'expt_1'
 modelType = 'latent'
 optimizerNmulti = 10
+nChunks = 2
 
 # ------------
 
@@ -32,11 +40,35 @@ if (expt %in% c('expt_1','expt_3')){
   nYrs = 1000
 }
 
-name = paste0(expt,'.',modelType,'.',modelParameterVariation,'.',nYrs,'yrs.',optimizerNmulti,'multiStart')
+#########################
+#
+# options = list(attList=attList,nYrs=nYrs,seedID=seedID,
+#                modelTypeList=modelType,modelParameterVariation=modelParameterVariation,
+#                optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
+#                par=par,freePars=freePars)
+# time.start = Sys.time()
+# sim1 = doRuns(clim_ref=clim_ref,options=options)
+# time.1 = Sys.time() - time.start
+#
+# #########################
+#
+# options$nChunks = nChunks; options$paper.code.dir = paper.code.dir
+# time.start = Sys.time()
+# sim2 = doRunsPar(clim_ref=clim_ref,options=options)
+# time.2 = Sys.time() - time.start
+#
+# ########################
+#
+# check_sim(sim1,sim2)
+#
+########################
+
 options = list(attList=attList,nYrs=nYrs,seedID=seedID,
                modelTypeList=modelType,modelParameterVariation=modelParameterVariation,
                optimizerList=optimizerList,optimizerNmulti=optimizerNmulti,
-               par=par,freePars=freePars)
-sim = doRuns(clim_ref=clim_ref,options=options)
+               nChunks=nChunks,paper.code.dir=paper.code.dir)
+sim = doRunsPar(clim_ref=clim_ref,options=options)
+
+name = paste0(expt,'.',modelType,'.',modelParameterVariation,'.',nYrs,'yrs.',optimizerNmulti,'multiStart')
 fname = paste0(out.dir,name,'.RData')
 save.image(file=fname)
