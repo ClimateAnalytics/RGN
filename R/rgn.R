@@ -207,17 +207,17 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
   timeObj = vector(length=2)
   timeObj[1] = Sys.time()
 
-  # # deal with fixed and fitted pars
-  # if (!is.null(fixParLoc)){
-  #   xAll = c()
-  #   xAll[fixParLoc] = fixParVal
-  #   xAll[fitParLoc] = x
-  # } else {
-  #   xAll = x
-  # }
+  # deal with fixed and fitted pars
+  if (!is.null(fixParLoc)){
+    xAll = c()
+    xAll[fixParLoc] = fixParVal
+    xAll[fitParLoc] = x
+  } else {
+    xAll = x
+  }
 
-#  sim = simFunc(x=xAll,...)
-  sim = simFunc(x=x,...)
+ sim = simFunc(x=xAll,...)
+  # sim = simFunc(x=x,...)
   r = weights*(simTarget-sim)
   # r = r[!is.na(r)]
   f = sum(r^2)
@@ -231,36 +231,34 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 
 }
 
-# # this function deals with fixed parameters (that have same lower and upper bound)
-# rgn_fixPars = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL, ...){
-#
-#   fixParLoc = fixParVal = fitParLoc = c()
-#   for (i in 1:length(x0)){
-#     if (xLo[i]==xHi[i]){
-#       fixParLoc = c(fixParLoc,i)
-#       fixParVal = c(fixParVal,xLo[i])
-#     } else{
-#       fitParLoc = c(fitParLoc,i)
-#     }
-#   }
-#
-#   tmp = rgn(simFunc=simFunc,
-#             simTarget=simTarget,
-#             x0=x0[fitParLoc], xLo=xLo[fitParLoc], xHi=xHi[fitParLoc],
-#             weights=weights,
-#             cnvSettings=cnvSettings,
-#             fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
-#
-#   x = tmp$x
-#   xAll = c()
-#   xAll[fixParLoc] = fixParVal
-#   xAll[fitParLoc] = x
-#
-#   tmp$x = xAll
-#
-#   return(tmp)
-#
-# }
+# this function deals with fixed parameters (that have same lower and upper bound)
+rgn.fixPars = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL, ...){
+
+  fixParLoc = fixParVal = fitParLoc = c()
+  for (i in 1:length(par)){
+    if (lower[i]==upper[i]){
+      fixParLoc = c(fixParLoc,i)
+      fixParVal = c(fixParVal,lower[i])
+    } else{
+      fitParLoc = c(fitParLoc,i)
+    }
+  }
+
+  tmp = rgn.single(simFunc, simTarget, weights=NULL,
+            par=par[fitParLoc], lower=lower[fitParLoc], upper=upper[fitParLoc],
+            control=NULL,
+            fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
+
+  par = tmp$par
+  parAll = c()
+  parAll[fixParLoc] = fixParVal
+  parAll[fitParLoc] = par
+
+  tmp$par = par
+
+  return(tmp)
+
+}
 
 #' @title Robust Gauss Newton optimization
 #'
@@ -268,46 +266,131 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #' @param simFunc is a function that simulates a (vector) response, with first argument the vector of parameters over which optimization is performed
 #' @param simTarget is the target vector that \code{simFunc} is trying to match
 #' @param weights is a vector of weights used in the WSS objective function
-#' @param x0 is the vector of initial parameters
-#' @param xLo is the lower bounds on parameters
-#' @param xHi is the upper bounds on parameters
-#' @param cnvSettings list of RGN settings \cr
-#'         \code{cnvSetting$iterMax} is maximum iterations, \cr
-#'         \code{cnvSetting$dump} is level of diagnostic outputs between 0 and 3 (0=none, 3=highest), \cr
-#'         \code{cnvSetting$logFile} is log file name
+#' @param par is the vector of initial parameters
+#' @param lower is the lower bounds on parameters
+#' @param upper is the upper bounds on parameters
+#' @param control list of RGN settings
+#' \itemize{
+#' \item{\code{control$n.multi} is number of multi-starts
+#'         (i.e. invocations of optimization with different initial parameter estimates)}
+#' \item{\code{control$iterMax} is maximum iterations}
+#' \item{\code{control$dump} is level of diagnostic outputs between 0 and 3 (0=none, 3=highest)}
+#' \item{\code{control$keep.multi} (TRUE/FLASE) controls whether diagnostic output from each multi-start is recorded}
+#' \item{\code{control$logFile} is log file name}
+#' }
 #' @param ... other arguments to \code{simFunc()}
-#' @return List with optimal parameter set \code{x} and other RGN output \code{info}
+#'
+#' @return List with
+#' \itemize{
+#' \item{\code{par}, the optimal parameters}
+#' \item{\code{value}, the optimal function value}
+#' \item{\code{counts}, the total number of function calls}
+#' \item{\code{convergence}, an integer code indicating reason for completion.
+#' \code{1} maximum iterations reached,
+#' \code{2} relative reduction in function value small.
+#' \code{3} absolute reduction in function value small
+#' \code{4} relative change in parameters small}
+#' }
 #' @examples
 #' # Example 1: Rosenbrock
 #' simFunc_rosenbrock=function(x) c(1.0-x[1],10.0*(x[2]-x[1]**2))
 #' rgnOut = rgn(simFunc=simFunc_rosenbrock,
-#'              x0=c(-1.0,  0.0), xLo=c(-1.5, -1.0), xHi=c( 1.5,  3.0),
+#'              par=c(-1.0,  0.0), lower=c(-1.5, -1.0), upper=c( 1.5,  3.0),
 #'              simTarget=c(0,0))
-#' rgnOut$x #optimal parameters
-#' rgnOut$info$f #optimal objective function value
+#' rgnOut$par #optimal parameters
+#' rgnOut$value #optimal objective function value
 #'
 #' # Example 2: Hymod
 #' data("BassRiver") # load Bass River hydrological data
 #' rgnOut = rgn(simFunc=simFunc_hymod,
-#'              x0=c(400.,0.5,0.1,0.2,0.1),
-#'              xLo=c(1.,0.1,0.05,0.000001,0.000001),
-#'              xHi=c(1000.,2.,0.95,0.99999,0.99999),
+#'              par=c(400.,0.5,0.1,0.2,0.1),
+#'              lower=c(1.,0.1,0.05,0.000001,0.000001),
+#'              upper=c(1000.,2.,0.95,0.99999,0.99999),
 #'              simTarget=BassRiverData$Runoff.mm.day[365:length(BassRiverData$Date)],
 #'              stateVal=c(100.0,30.0,27.0,25.0,30.0,0.0,0.0,0.0), # initial states for hymod
 #'              nWarmUp=365,                                       # warmup period
 #'              rain=BassRiverData$Rain.mm,                        # precip input
 #'              pet=BassRiverData$ET.mm)                           # PET input
-#' rgnOut$x #optimal parameters
-#' rgnOut$info$f #optimal objective function value
+#' rgnOut$par #optimal parameters
+#' rgnOut$value #optimal objective function value
 #' @useDynLib RGN
 #' @export
 #'
-rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL, ...){
+rgn = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL,...){
+
+  if (is.null(control$n.multi)){
+    n.multi = 1
+  } else {
+    n.multi = control$n.multi
+  }
+
+  if (is.null(control$keep.multi)){
+    keep.multi=F
+  } else {
+    keep.multi=control$keep.multi
+  }
+
+  control.single = control; control.single$n.multi = control.single$keep.multi = NULL
+
+  par.multi=par
+  if (!is.null(par.multi)){
+    if (is.vector(par.multi)){
+      par.multi = matrix(par.multi,nrow=1)
+    }
+  }
+
+  # number of initial parameter sets
+  if (is.null(par.multi)){
+    n.par.multi = 0
+  } else {
+    n.par.multi = dim(par.multi)[1]
+  }
+
+  f.best = 9e9; counts = 0
+  multistarts = list()
+  for (n in 1:n.multi){
+    if (n <= n.par.multi){
+      par = par.multi[n,]
+    } else {
+      set.seed(n)
+      par = lower + stats::runif(length(lower))*(upper-lower)
+    }
+    rgn.single.out = rgn.fixPars(simFunc=simFunc, simTarget=simTarget, weights=weights,
+                                 par=par,lower=lower,upper=upper,control=control.single,...)
+    f.single = (rgn.single.out$value)
+    pars.single = rgn.single.out$par
+    if (f.single<f.best){
+      f.best = f.single
+      pars.best = pars.single
+      n.best = n
+    }
+    counts = counts + rgn.single.out$count
+    if (keep.multi){
+      multistarts[[n]] = rgn.single.out
+    }
+  }
+
+  if (n.multi==1){
+    out = rgn.single.out
+  } else {
+    out = list(value=f.best,par=pars.best,counts=counts,n.best=n.best)
+    if (keep.multi){out$multistarts=multistarts}
+  }
+
+  return(out)
+}
+
+##########################################################
+
+rgn.single = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL, ...){
 
   info = setRgnInfoType()
 
-  cnv = setDefaultRgnConvergeSettings(iterMax=cnvSettings$iterMax, dump=cnvSettings$dump, logFile=cnvSettings$logFile)
+  cnv = setDefaultRgnConvergeSettings(iterMax=control$iterMax,
+                                      dump=control$dump,
+                                      logFile=control$logFile)
 
+  x0 = par; xLo = lower; xHi = upper
   p = length(x0)
   n = length(simTarget[!is.na(simTarget)])
   if(is.null(weights)){weights=rep(1,n)}
@@ -695,7 +778,11 @@ rgn = function(simFunc, simTarget, weights=NULL, x0, xLo, xHi, cnvSettings=NULL,
     write(paste('      number of function calls:    ', info$nEval),file=cnv$logFile,append=TRUE)
     write(paste('      cpu time (sec):               ', info$cpuTime),file=cnv$logFile,append=TRUE)
   }
-  return(list(x=x,info=info,error=error,message=message))
+  return(list(par=x,
+              value=info$f,
+              info=info,
+              convergence=info$termFlag,
+              counts=info$nEval))
 } # END rgn
 
 # ------------------------------ EVERYTHING BELOW THIS LINE COULD BE REPLACED WITH AN R NATIVE SVDSOLVER, e.g. svd()------------------------------------
