@@ -13,8 +13,50 @@
 #
 #******************************************************************
 
-#NO=FALSE; YES=TRUE
 EPS=.Machine$double.eps
+
+# Initialize the RGN converge variables
+setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL){
+  #optional arguments iterMax, dump, logFile
+  cnvSet=setRgnConvType()
+  #---
+  #
+  cnvSet$iterMax = 100; if(PRESENT(iterMax)) cnvSet$iterMax = iterMax
+  cnvSet$noReduction = 4
+  cnvSet$noRelChangeFTol = 1.0e-5
+  cnvSet$noRelChangeF = 5
+  cnvSet$noRelChangeParTol = 1.0e-5
+  cnvSet$noRelChangePar = 5
+  cnvSet$tolSafe = 1.0e-14
+  cnvSet$dumpResults = 0; if(PRESENT(dump)) cnvSet$dumpResults = dump
+  cnvSet$logFile = 'rgnLog.txt'; if(PRESENT(logFile)) cnvSet$logFile = logFile
+  return(cnvSet)
+}
+
+# Initialize the RGN constants
+setRgnConstants=function(alpha=NULL, beta=NULL, nls=NULL){
+  # NOTE - Side-effect - global variable via <<- operator
+  #set = rgnSetType
+  rgnConstants = list()
+  rgnConstants$gtol = 1.0e-10
+  rgnConstants$stol = 1.0e-11
+  rgnConstants$ftol = 1.0e-10
+  rgnConstants$gtolMin = 0.1
+  rgnConstants$tol = 0.1
+  rgnConstants$tolFor = 0.1
+  rgnConstants$alpha = 0.001; if(PRESENT(alpha)) rgnConstants$alpha = alpha
+  rgnConstants$sigma = 1.0
+  rgnConstants$c1 = 0.0001
+  rgnConstants$rho = 0.6
+  rgnConstants$nls = 4; if(PRESENT(nls)) rgnConstants$nls = nls
+  rgnConstants$beta = 10.0; if(PRESENT(beta)) rgnConstants$beta = beta
+  rgnConstants$hLow = 1.0e-8
+  rgnConstants$hHiFrac = 0.5
+  rgnConstants$xScale = 10.0
+  rgnConstants$fScale = 1.0
+  return(rgnConstants)
+} # END setRgnConstants
+
 
 setRgnConvType = function(){
   rgnConvType=list()
@@ -31,7 +73,6 @@ setRgnConvType = function(){
   return(rgnConvType)
 }
 
-
 setRgnInfoType = function(){
   rgnInfoType=list()
   rgnInfoType$nIter=0
@@ -43,28 +84,9 @@ setRgnInfoType = function(){
   return(rgnInfoType)
 }
 
-
-# rgnSetType=list()
-# rgnSetType$gtol=0.0
-# rgnSetType$stol=0.0
-# rgnSetType$ftol=0.0
-# rgnSetType$gtolMin=0.0
-# rgnSetType$tol=0.0
-# rgnSetType$tolFor=0.0
-# rgnSetType$alpha=0.0
-# rgnSetType$sigma=0.0
-# rgnSetType$c1=0.0
-# rgnSetType$rho=0.0
-# rgnSetType$beta=0.0
-# rgnSetType$hLow=0.0
-# rgnSetType$hHiFrac=0.0
-# rgnSetType$xScale=0.0
-# rgnSetType$fScale=0.0
-# rgnSetType$nls=0
-#
-# set <<- rgnSetType
-
+#############################################
 # mimic F90 functionality
+
 PRESENT=function(x=NULL){
   ans=!is.null(x)
   return(ans)
@@ -94,9 +116,7 @@ TRANSPOSE=function(A){
   return(t(A))
 }
 MERGE=function(A,val,mask){
-  # this is a very shoddy implementation
-  # manually handle vector or matrix
-  # check if inputs are conformal and fix as needed by assuming shape of mask
+  # this implementation manually handles vector or matrix
   if(is.vector(mask)){ # scalar or vector
     n=length(mask)
     val.arr=val
@@ -156,51 +176,14 @@ MAX=function(...){
 }
 ABS=function(x){abs(x)}
 
-# Initialize the RGN converge variables
-setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL){
-  #optional arguments iterMax, dump, logFile
-  cnvSet=setRgnConvType()
-  #---
-  #
-  cnvSet$iterMax = 100; if(PRESENT(iterMax)) cnvSet$iterMax = iterMax
-  cnvSet$noReduction = 4
-  cnvSet$noRelChangeFTol = 1.0e-5
-  cnvSet$noRelChangeF = 5
-  cnvSet$noRelChangeParTol = 1.0e-5
-  cnvSet$noRelChangePar = 5
-  cnvSet$tolSafe = 1.0e-14
-  cnvSet$dumpResults = 0; if(PRESENT(dump)) cnvSet$dumpResults = dump
-  cnvSet$logFile = 'rgnLog.txt'; if(PRESENT(logFile)) cnvSet$logFile = logFile
-  return(cnvSet)
-}
+#############################################
 
-  # Initialize the RGN constants
-setRgnConstants=function(alpha=NULL, beta=NULL, nls=NULL){
-  # NOTE - Side-effect - global variable via <<- operator
-  #set = rgnSetType
-  rgnConstants = list()
-  rgnConstants$gtol = 1.0e-10
-  rgnConstants$stol = 1.0e-11
-  rgnConstants$ftol = 1.0e-10
-  rgnConstants$gtolMin = 0.1
-  rgnConstants$tol = 0.1
-  rgnConstants$tolFor = 0.1
-  rgnConstants$alpha = 0.001; if(PRESENT(alpha)) rgnConstants$alpha = alpha
-  rgnConstants$sigma = 1.0
-  rgnConstants$c1 = 0.0001
-  rgnConstants$rho = 0.6
-  rgnConstants$nls = 4; if(PRESENT(nls)) rgnConstants$nls = nls
-  rgnConstants$beta = 10.0; if(PRESENT(beta)) rgnConstants$beta = beta
-  rgnConstants$hLow = 1.0e-8
-  rgnConstants$hHiFrac = 0.5
-  rgnConstants$xScale = 10.0
-  rgnConstants$fScale = 1.0
-  return(rgnConstants)
-} # END setRgnConstants
-#
 goto1=function(procnam){
   return(list(error = 1, message = paste("f-",procnam,"RGN objFunc call failed")))
 }
+
+#############################################
+# caculate residuals used in objective function
 
 objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL,fitParLoc=NULL,...){
 
@@ -231,34 +214,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 
 }
 
-# this function deals with fixed parameters (that have same lower and upper bound)
-rgn.fixPars = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL, ...){
-
-  fixParLoc = fixParVal = fitParLoc = c()
-  for (i in 1:length(par)){
-    if (lower[i]==upper[i]){
-      fixParLoc = c(fixParLoc,i)
-      fixParVal = c(fixParVal,lower[i])
-    } else{
-      fitParLoc = c(fitParLoc,i)
-    }
-  }
-
-  tmp = rgn.single(simFunc, simTarget, weights=NULL,
-            par=par[fitParLoc], lower=lower[fitParLoc], upper=upper[fitParLoc],
-            control=NULL,
-            fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
-
-  par = tmp$par
-  parAll = c()
-  parAll[fixParLoc] = fixParVal
-  parAll[fitParLoc] = par
-
-  tmp$par = par
-
-  return(tmp)
-
-}
+#############################################
 
 #' @title Robust Gauss Newton optimization
 #'
@@ -380,7 +336,38 @@ rgn = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL
   return(out)
 }
 
+#############################################
+# this function allows fixed parameters to be used (that have same lower and upper bound)
+rgn.fixPars = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL, ...){
+
+  fixParLoc = fixParVal = fitParLoc = c()
+  for (i in 1:length(par)){
+    if (lower[i]==upper[i]){
+      fixParLoc = c(fixParLoc,i)
+      fixParVal = c(fixParVal,lower[i])
+    } else{
+      fitParLoc = c(fitParLoc,i)
+    }
+  }
+
+  tmp = rgn.single(simFunc, simTarget, weights=NULL,
+                   par=par[fitParLoc], lower=lower[fitParLoc], upper=upper[fitParLoc],
+                   control=NULL,
+                   fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
+
+  par = tmp$par
+  parAll = c()
+  parAll[fixParLoc] = fixParVal
+  parAll[fitParLoc] = par
+
+  tmp$par = par
+
+  return(tmp)
+
+}
+
 ##########################################################
+# running rgn for a single set of initial parameters
 
 rgn.single = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL, ...){
 
@@ -788,20 +775,8 @@ rgn.single = function(simFunc, simTarget, weights=NULL, par, lower, upper, contr
 # ------------------------------ EVERYTHING BELOW THIS LINE COULD BE REPLACED WITH AN R NATIVE SVDSOLVER, e.g. svd()------------------------------------
 svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, minSingFrac=NULL,minSingVal=NULL,tS=NULL,cn=NULL){
   # Solves Ax=b using SVD decomposition followed setting singular values to zero and then back substitution
-  # input integer m,n
-  # input real A(:,:)
-  # input real b(:)
-  # input optional minSingFrac
-  # output
-  #output real optional x(:)
-  #output real optional Ainv(:,:)
-  #output real optional S(:)
-  #output real optional tS(:)
   error = 0
   message = 'ok'
-  # output real optional minSingVal
-  # output real optional cn
-  # local
   i=0; j=0; k=0; nite=0
   U=matrix(0,m,n)
   SD=matrix(0,n,n)
@@ -946,32 +921,6 @@ Triu=function(a){
   }
   return(au)
 } # END Triu
-
-# following function now coded in F90.
-# # Modified Gram-Schmidt process
-# Qr=function(a){
-#   # input real a(:,:)
-#   q=matrix(0.0,SIZE(a,1), SIZE(a,2))
-#   r=matrix(0.0,SIZE(a,2), SIZE(a,2))
-#   #local
-#   a0=matrix(0.0,SIZE(a,1), SIZE(a,2))
-#   k=0;n=0
-#
-#   n = SIZE(a,2)
-#   a0 = a
-#   for(k in 1:n){
-#     r[k,k] = Norm(a0[ ,k])
-#     #       q(:,k) = a0(:,k) / r(k,k)
-# #    ind=which(abs(a0[ ,k])>0.000000001)  #FIXME_DK: rough fix will need checks+refinement
-#     ind = which(a0[,k]!=0.) # DM: this seems to work for now
-#     if(length(ind)>0) q[ind,k] = a0[ind,k] / r[k,k]
-#     if(k!=n){
-#       r[k,(k+1):n] = MATMUL(q[ ,k], a0[ ,(k+1):n])
-#       a0[ ,(k+1):n] = a0[ ,(k+1):n] - MATMUL(matrix(q[ ,k:k],nrow=n,ncol=1), matrix(r[k:k,(k+1):n],nrow=1,ncol=(n-k)))
-#     }
-#   }
-#   return(list(q=q,r=r))
-# } #END Qr
 
 svdBackSub=function(m, n, U, W, V, b, x, error, message){
   # Solves Ax=b using SVD back substitution
