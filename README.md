@@ -6,13 +6,14 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-This repository contains the R package for the Robust Gauss-Newton
-(RGN), which is designed for solving optimization problems with a sum of
-least squares objective function.
+This repository contains the R package for the Robust Gauss-Newton (RGN)
+algorithm, which is designed for solving optimization problems with a
+sum of least squares objective function.
 
 This R implementation is developed by David McInerney and Michael
 Leonard, and is based on original RGN Fortran code developed by Youwei
-Qin, Dmitri Kavetski and George Kuczera. see github reference link
+Qin, Dmitri Kavetski and George Kuczera
+(<https://github.com/eachonly/Robust-Gauss-Newton-Algorithm/>).
 
 When using RGN please cite the following articles:
 
