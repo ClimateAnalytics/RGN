@@ -19,7 +19,7 @@ maxExp  = .Machine$double.max.exp # biggest exponent
 hugeInt = .Machine$integer.max    # largest integer on machine
 
 # Other constants
-zero=0.0; half=0.5; one=1.0; two=2.0; four=4.0;
+zero=0.0; half=0.5; one=1.0; two=2.0; four=4.0
 pi = 3.141592653589793238462643383279502884197
 twoPi = 6.283185307179586476925286766559005768394
 

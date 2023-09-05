@@ -5,13 +5,15 @@
 # References
 # * Qin2018a: Youwei Qin, Kavetski Dmitri, George Kuczera (2018),
 #            A Robust Gauss-Newton algorithm for the optimization of hydrological models: From standard Gauss-Newton to Robust Gauss-Newton,
-#            Water Resources Research, accept
+#            Water Resources Research, 54, https://doi.org/10.1029/2017WR022488
 
 # * Qin2018b: Youwei Qin, Kavetski Dmitri, George Kuczera (2018),
 #            A Robust Gauss-Newton algorithm for the optimization of hydrological models: Benchmarking against industry-standard algorithms,
-#            Water Resources Research, accept
+#            Water Resources Research, 54, https://doi.org/10.1029/2017WR022489
 #
 #******************************************************************
+
+# setup rgn variables
 
 EPS=.Machine$double.eps
 
@@ -183,7 +185,7 @@ goto1=function(procnam){
 }
 
 #############################################
-# caculate residuals used in objective function
+# calculate residuals used in objective function
 
 objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL,fitParLoc=NULL,...){
 
@@ -221,25 +223,30 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #' @description \code{rgn} performs optimization of weighted-sum-of-squares (WSS) objective function using the Robust Gauss Newton algorithm
 #' @param simFunc is a function that simulates a (vector) response, with first argument the vector of parameters over which optimization is performed
 #' @param simTarget is the target vector that \code{simFunc} is trying to match
-#' @param weights is a vector of weights used in the WSS objective function
+#' @param weights is a vector of weights used in the WSS objective function. Defaults to equal weights.
 #' @param par is the vector of initial parameters
 #' @param lower is the lower bounds on parameters
 #' @param upper is the upper bounds on parameters
 #' @param control list of RGN settings
 #' \itemize{
 #' \item{\code{control$n.multi} is number of multi-starts
-#'         (i.e. invocations of optimization with different initial parameter estimates)}
-#' \item{\code{control$iterMax} is maximum iterations}
-#' \item{\code{control$dump} is level of diagnostic outputs between 0 and 3 (0=none, 3=highest)}
-#' \item{\code{control$keep.multi} (TRUE/FLASE) controls whether diagnostic output from each multi-start is recorded}
+#'         (i.e. invocations of optimization with different initial parameter estimates). Default is 1.}
+#' \item{\code{control$iterMax} is maximum iterations. Default is 100.}
+#' \item{\code{control$dump} is level of diagnostic outputs between 0 (none) and 3 (highest). Default is 0.}
+#' \item{\code{control$keep.multi} (TRUE/FALSE) controls whether diagnostic output from each multi-start is recorded. Default is FALSE.}
 #' \item{\code{control$logFile} is log file name}
 #' }
 #' @param ... other arguments to \code{simFunc()}
 #'
+#' @details \code{rgn} minimizes the objective function \code{sum((weights*(simFunc-simTarget)^2))},
+#' which is a sum of squared weighted residuals (\code{residuals=weights*(simFunc-simTarget)}).
+#' Note \code{simFunc} corresponds to the vector of residuals when default
+#' arguments for \code{simTarget} and \code{weights} are used.
+#'
 #' @return List with
 #' \itemize{
 #' \item{\code{par}, the optimal parameters}
-#' \item{\code{value}, the optimal function value}
+#' \item{\code{value}, the simulated vector from optimal parameters}
 #' \item{\code{counts}, the total number of function calls}
 #' \item{\code{convergence}, an integer code indicating reason for completion.
 #' \code{1} maximum iterations reached,
@@ -272,7 +279,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #' @useDynLib RGN
 #' @export
 #'
-rgn = function(simFunc, simTarget, weights=NULL, par, lower, upper, control=NULL,...){
+rgn = function(simFunc, simTarget=0, weights=NULL, par, lower, upper, control=NULL,...){
 
   if (is.null(control$n.multi)){
     n.multi = 1
@@ -352,7 +359,7 @@ rgn.fixPars = function(simFunc, simTarget, weights=NULL, par, lower, upper, cont
 
   tmp = rgn.single(simFunc, simTarget, weights=NULL,
                    par=par[fitParLoc], lower=lower[fitParLoc], upper=upper[fitParLoc],
-                   control=NULL,
+                   control=control,
                    fixParLoc = fixParLoc, fixParVal = fixParVal, fitParLoc = fitParLoc, ...)
 
   par = tmp$par
@@ -720,6 +727,7 @@ rgn.single = function(simFunc, simTarget, weights=NULL, par, lower, upper, contr
     }else{
       h = MAX (h/set$beta, hLo)
     }
+
     #
     # Check for convergence
     if(nIter >= cnv$iterMax) {
@@ -772,7 +780,7 @@ rgn.single = function(simFunc, simTarget, weights=NULL, par, lower, upper, contr
               counts=info$nEval))
 } # END rgn
 
-# ------------------------------ EVERYTHING BELOW THIS LINE COULD BE REPLACED WITH AN R NATIVE SVDSOLVER, e.g. svd()------------------------------------
+# ----
 svdSolve=function(m, n, A, b, x=NULL, Ainv=NULL, S=NULL, minSingFrac=NULL,minSingVal=NULL,tS=NULL,cn=NULL){
   # Solves Ax=b using SVD decomposition followed setting singular values to zero and then back substitution
   error = 0
@@ -925,11 +933,6 @@ Triu=function(a){
 svdBackSub=function(m, n, U, W, V, b, x, error, message){
   # Solves Ax=b using SVD back substitution
   # Singular value decomposition of A(m,n) = U(m,n) * W(n) *Vtranspose (n,n)
-  #input integer: m, n
-  #input real: U(:,:), W(:), V(:,:), b(:)
-  #output real: x(:)
-  #output integer: error
-  #output character output: message
   j=0 # local integer
   tmp=rep(0.0,n) # local real vector
   #----
