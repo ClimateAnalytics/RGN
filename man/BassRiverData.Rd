@@ -15,7 +15,8 @@ List containing numerical vectors for
 data(BassRiver)
 }
 \description{
-Hydrological data for Bass River catchment in Victoria, Australia
+Streamflow, rainfall and PET data for Bass River catchment
+(227219) in Victoria, Australia. Originally obtained from Francis Chiew.
 }
 \examples{
 # select first 3 years of data
@@ -35,6 +36,7 @@ plot(BassRiverData$Date[sel],
      type='l',xlab='Date',ylab='PET (mm/day)',main='Potential evapotranspiration')
 }
 \references{
-\url{XXXX}
+\url{https://github.com/eachonly/Robust-Gauss-Newton-Algorithm}
+\url{http://www.bom.gov.au/water/hrs/#id=227219}
 }
 \keyword{datasets}
