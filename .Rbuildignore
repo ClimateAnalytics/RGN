@@ -2,6 +2,9 @@
 ^\.Rproj\.user$
 ^\.Rhistory$
 ^examples$
+^paper$
+^paper.code$
+^paper.figs$
 ^notes$
 ^Rprof\.out$
 ^.\*.RData$
@@ -10,3 +13,6 @@
 ^foreSIGHT_wgen_compare_opt\.RData$
 ^rgnLog\.txt$
 ^DM_todo\.txt$
+^\.travis\.yml$
+^LICENSE\.md$
+^README\.Rmd$
