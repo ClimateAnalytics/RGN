@@ -4,14 +4,23 @@
 \alias{rgn}
 \title{Robust Gauss Newton optimization}
 \usage{
-rgn(simFunc, simTarget, weights = NULL, par, lower, upper, control = NULL, ...)
+rgn(
+  simFunc,
+  simTarget = 0,
+  weights = NULL,
+  par,
+  lower,
+  upper,
+  control = NULL,
+  ...
+)
 }
 \arguments{
 \item{simFunc}{is a function that simulates a (vector) response, with first argument the vector of parameters over which optimization is performed}
 
 \item{simTarget}{is the target vector that \code{simFunc} is trying to match}
 
-\item{weights}{is a vector of weights used in the WSS objective function}
+\item{weights}{is a vector of weights used in the WSS objective function. Defaults to equal weights.}
 
 \item{par}{is the vector of initial parameters}
 
@@ -22,10 +31,10 @@ rgn(simFunc, simTarget, weights = NULL, par, lower, upper, control = NULL, ...)
 \item{control}{list of RGN settings
 \itemize{
 \item{\code{control$n.multi} is number of multi-starts
-        (i.e. invocations of optimization with different initial parameter estimates)}
-\item{\code{control$iterMax} is maximum iterations}
-\item{\code{control$dump} is level of diagnostic outputs between 0 and 3 (0=none, 3=highest)}
-\item{\code{control$keep.multi} (TRUE/FALSE) controls whether diagnostic output from each multi-start is recorded}
+        (i.e. invocations of optimization with different initial parameter estimates). Default is 1.}
+\item{\code{control$iterMax} is maximum iterations. Default is 100.}
+\item{\code{control$dump} is level of diagnostic outputs between 0 (none) and 3 (highest). Default is 0.}
+\item{\code{control$keep.multi} (TRUE/FALSE) controls whether diagnostic output from each multi-start is recorded. Default is FALSE.}
 \item{\code{control$logFile} is log file name}
 }}
 
@@ -46,6 +55,12 @@ List with
 }
 \description{
 \code{rgn} performs optimization of weighted-sum-of-squares (WSS) objective function using the Robust Gauss Newton algorithm
+}
+\details{
+\code{rgn} minimizes the objective function \code{sum((weights*(simFunc-simTarget)^2))},
+which is a sum of squared weighted residuals (\code{residuals=weights*(simFunc-simTarget)}).
+Note \code{simFunc} corresponds to the vector of residuals when default
+arguments for \code{simTarget} and \code{weights} are used.
 }
 \examples{
 # Example 1: Rosenbrock
