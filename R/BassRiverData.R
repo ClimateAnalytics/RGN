@@ -5,8 +5,8 @@
 #' (227219) in Victoria, Australia. Originally obtained from Francis Chiew.
 #' @docType data
 #' @usage data(BassRiver)
-#' @references \url{https://github.com/eachonly/Robust-Gauss-Newton-Algorithm}
-#' \url{http://www.bom.gov.au/water/hrs/#id=227219}
+#' @references \url{https://github.com/eachonly/Robust-Gauss-Newton-Algorithm},
+#' \url{http://www.bom.gov.au/water/hrs}
 #' @format List containing numerical vectors for
 #'         precipitation (\code{Rain.mm}),
 #'         potential evapotranspiration (\code{ET.mm}),

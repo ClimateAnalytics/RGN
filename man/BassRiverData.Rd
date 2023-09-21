@@ -36,7 +36,7 @@ plot(BassRiverData$Date[sel],
      type='l',xlab='Date',ylab='PET (mm/day)',main='Potential evapotranspiration')
 }
 \references{
-\url{https://github.com/eachonly/Robust-Gauss-Newton-Algorithm}
-\url{http://www.bom.gov.au/water/hrs/#id=227219}
+\url{https://github.com/eachonly/Robust-Gauss-Newton-Algorithm},
+\url{http://www.bom.gov.au/water/hrs}
 }
 \keyword{datasets}
