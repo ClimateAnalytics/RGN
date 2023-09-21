@@ -1,4 +1,4 @@
-rhub::check_for_cran() gives 6 NOTES (some as repeats) - see below.
+rhub::check_for_cran() gives 6 NOTES (some are repeats) - see below.
 
 All seem acceptable 
 - 'misspelled' words are correct, possible invalid url is valid
@@ -30,7 +30,7 @@ For a CRAN submission we recommend that you fix all NOTEs, WARNINGs and ERRORs.
     et (19:67)
   
   Found the following (possibly) invalid URLs:
-    URL: http://www.bom.gov.au/water/hrs
+    URL: http://www.bom.gov.au/water/hrs/
       From: man/BassRiverData.Rd
       Status: 403
       Message: Forbidden
@@ -46,7 +46,7 @@ For a CRAN submission we recommend that you fix all NOTEs, WARNINGs and ERRORs.
     'lastMiKTeXException'
 
 ❯ On ubuntu-gcc-release (r-release)
-  checking CRAN incoming feasibility ... [6s/16s] NOTE
+  checking CRAN incoming feasibility ... [6s/20s] NOTE
   Maintainer: ‘David McInerney <dmcinern@gmail.com>’
   
   New submission
@@ -58,7 +58,7 @@ For a CRAN submission we recommend that you fix all NOTEs, WARNINGs and ERRORs.
     RGN (3:29, 17:57)
   
   Found the following (possibly) invalid URLs:
-    URL: http://www.bom.gov.au/water/hrs
+    URL: http://www.bom.gov.au/water/hrs/
       From: man/BassRiverData.Rd
       Status: 403
       Message: Forbidden
@@ -68,7 +68,7 @@ For a CRAN submission we recommend that you fix all NOTEs, WARNINGs and ERRORs.
   Skipping checking HTML validation: no command 'tidy' found
 
 ❯ On fedora-clang-devel (r-devel)
-  checking CRAN incoming feasibility ... [7s/17s] NOTE
+  checking CRAN incoming feasibility ... [6s/21s] NOTE
   Maintainer: ‘David McInerney <dmcinern@gmail.com>’
   
   New submission
@@ -80,7 +80,7 @@ For a CRAN submission we recommend that you fix all NOTEs, WARNINGs and ERRORs.
     et (19:67)
   
   Found the following (possibly) invalid URLs:
-    URL: http://www.bom.gov.au/water/hrs
+    URL: http://www.bom.gov.au/water/hrs/
       From: man/BassRiverData.Rd
       Status: 403
       Message: Forbidden
