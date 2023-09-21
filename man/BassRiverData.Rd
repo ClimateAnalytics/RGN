@@ -37,6 +37,6 @@ plot(BassRiverData$Date[sel],
 }
 \references{
 \url{https://github.com/eachonly/Robust-Gauss-Newton-Algorithm},
-\url{http://www.bom.gov.au/water/hrs}
+\url{http://www.bom.gov.au/water/hrs/}
 }
 \keyword{datasets}
