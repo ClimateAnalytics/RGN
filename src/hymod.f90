@@ -32,12 +32,11 @@
    REAL(mrk),INTENT(out)::Vout
    END SUBROUTINE nashCascade
 
-   SUBROUTINE checkFeasHYMOD(S,Smax,err,message)
+   SUBROUTINE checkFeasHYMOD(S,Smax,err)
    use constantsMod,only:mrk, mik
    REAL(mrk),INTENT(in)::S(:)
    REAL(mrk),INTENT(in)::Smax
    INTEGER(mik),INTENT(out)::  err
-   CHARACTER(len=255),INTENT(out)::message
    END SUBROUTINE checkFeasHYMOD
 
     END INTERFACE
@@ -52,21 +51,13 @@
    !local parameters
    CHARACTER(*),PARAMETER::procnam="evolveHYMOD"
    REAL(mrk)::Uo,Uq,Us,Ue
-   CHARACTER(len=255)::message
 
   err = 0
-   message = ''
 
    ! Start procedure here
-    CALL checkFeasHYMOD(S,Smax,err,message)
-    IF(err/=0)THEN
-       message="f-"//procnam//"/&"//message; RETURN
-    ENDIF
+    CALL checkFeasHYMOD(S,Smax,err)
    !The first part is to calculate the sum of direct flow and saturated flow,U0
-   CALL PDM(S(isoil),Smax,b,precip,Uo,err,message)
-     IF(err/=0)THEN
-      message="f-"//procnam//"/&"//message; RETURN
-   ENDIF
+   CALL PDM(S(isoil),Smax,b,precip,Uo,err)
 
    Ue=pet                                       !     - ET at max (eg, Wagener HESS)
    Ue=min(Ue,S(isoil))
@@ -82,7 +73,7 @@
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   PURE SUBROUTINE PDM(S,Smax,b,P,Q,err,message)
+   PURE SUBROUTINE PDM(S,Smax,b,P,Q,err)
    ! Purpose: Single time step of the Probability Distribution Model (PDM).
    !          (finite non-leaky tank - soft threshold)
    ! ---
@@ -111,7 +102,6 @@
    REAL(mrk),INTENT(in)::Smax,b,P
    REAL(mrk),INTENT(out)::Q
    INTEGER(mik),INTENT(inout)::err
-   CHARACTER(*),INTENT(inout)::message
    ! locals
    REAL(mrk),PARAMETER::Smin=zero,tolMBE=1.e-14_mrk
    REAL(mrk)::Sbeg,frac,OV1,OV2,Pinf,eMB,net
@@ -119,13 +109,10 @@
    CHARACTER(*),PARAMETER::procnam="PDM"
    ! Start procedure here
    IF(S>Smax)THEN
-     message="f-"//procnam//"badIni[S>Smax]"
      err=-10; RETURN
    ELSEIF(S<Smin)THEN
-     message="f-"//procnam//"badIni[S<Smin]"
      err=-10; RETURN
    ELSEIF(b<zero)THEN
-     message="f-"//procnam//"illegal[b<zero]"
      err=-10; RETURN
    ENDIF
    Sbeg=S; OV2=zero
@@ -140,16 +127,13 @@
    OV1=MAX(Sbeg+Pinf-S,zero)           ! soft outflow
    Q=OV1+OV2                           ! total outflow
    IF(S>Smax)THEN
-     message="f-"//procnam//"bug?[Send>Smax]"
      err=-10; RETURN
    ELSEIF(S<Smin)THEN
-     message="f-"//procnam//"bug?[Send<Smin]"
      err=-10; RETURN
    ENDIF
    net=P-Q
    eMB=Sbeg+net-S                      ! S-balance discrEpency
    IF(ABS(eMB)>tolMBE*MAX(Smax,P,Q))THEN
-     message="f-"//procnam//"/MBE[eMB>tol]"
      err=-10; RETURN
    ENDIF
    ! End procedure here
@@ -192,25 +176,21 @@
    ENDSUBROUTINE nashCascade
 
    !----------------------------------------------------
-    PURE SUBROUTINE checkFeasHYMOD(S,Smax,err,message)
+    PURE SUBROUTINE checkFeasHYMOD(S,Smax,err)
     ! Purpose: Checks feasibility of HYMOD states and parameters.
     USE constantsMod,ONLY:zero, mrk, mik, isoil
     IMPLICIT NONE
     ! dummies
     REAL(mrk),INTENT(in)::S(:),Smax
     INTEGER(mik),INTENT(out)::err
-    CHARACTER(*),INTENT(out)::message
     ! locals
     CHARACTER(*),PARAMETER::procnam="checkFeasHYMOD"
     CHARACTER(*),PARAMETER::fmt1='(a,es15.8,a,es15.8,a)'
     CHARACTER(*),PARAMETER::fmt2='(a,i0,a,es15.8,a)'
     ! Start procedure here
     IF(S(isoil)>Smax)THEN
-      WRITE(message,fmt1)"f-"//procnam//"/badIni&
-        &[S(soil)>Smax;(",S(isoil),")>(",Smax,")]"
       err=-10; RETURN
     ELSEIF(ANY(S<zero))THEN
-      WRITE(message,fmt2)"f-"//procnam//"/badIni[S)<0.0]"
       err=-10; RETURN
     ENDIF
     ! End procedure here
