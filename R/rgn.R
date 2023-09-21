@@ -210,7 +210,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 
   timeObj[2] = Sys.time()
   timeFunc=timeObj[2]-timeObj[1]
-  outObjFunc = list(r=r, f=f, timeFunc=timeFunc) # DM to do: add error number and message to this
+  outObjFunc = list(r=r, f=f, sim=sim, timeFunc=timeFunc) # DM to do: add error number and message to this
 
   return(outObjFunc)
 
@@ -246,7 +246,9 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #' @return List with
 #' \itemize{
 #' \item{\code{par}, the optimal parameters}
-#' \item{\code{value}, the simulated vector from optimal parameters}
+#' \item{\code{value}, the optimal objective function value}
+#' \item{\code{sim}, the simulated vector using optimal parameters}
+#' \item{\code{residuals}, the vector of residuals using optimal parameters}
 #' \item{\code{counts}, the total number of function calls}
 #' \item{\code{convergence}, an integer code indicating reason for completion.
 #' \code{1} maximum iterations reached,
@@ -264,6 +266,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #' rgnOut$value #optimal objective function value
 #'
 #' # Example 2: Hymod
+#' \dontrun{
 #' data("BassRiver") # load Bass River hydrological data
 #' rgnOut = rgn(simFunc=simFunc_hymod,
 #'              par=c(400.,0.5,0.1,0.2,0.1),
@@ -276,6 +279,8 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #'              pet=BassRiverData$ET.mm)                           # PET input
 #' rgnOut$par #optimal parameters
 #' rgnOut$value #optimal objective function value
+#' }
+#'
 #' @useDynLib RGN
 #' @export
 #'
@@ -773,8 +778,16 @@ rgn.single = function(simFunc, simTarget, weights=NULL, par, lower, upper, contr
     write(paste('      number of function calls:    ', info$nEval),file=cnv$logFile,append=TRUE)
     write(paste('      cpu time (sec):               ', info$cpuTime),file=cnv$logFile,append=TRUE)
   }
+
+  OFout = objFuncCall(simFunc=simFunc,
+                      x=x,
+                      simTarget=simTarget,
+                      weights=weights,...)
+
   return(list(par=x,
               value=info$f,
+              sim=OFout$sim,
+              residuals=OFout$r,
               info=info,
               convergence=info$termFlag,
               counts=info$nEval))

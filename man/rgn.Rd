@@ -44,7 +44,9 @@ rgn(
 List with
 \itemize{
 \item{\code{par}, the optimal parameters}
-\item{\code{value}, the simulated vector from optimal parameters}
+\item{\code{value}, the optimal objective function value}
+\item{\code{sim}, the simulated vector using optimal parameters}
+\item{\code{residuals}, the vector of residuals using optimal parameters}
 \item{\code{counts}, the total number of function calls}
 \item{\code{convergence}, an integer code indicating reason for completion.
 \code{1} maximum iterations reached,
@@ -72,6 +74,7 @@ rgnOut$par #optimal parameters
 rgnOut$value #optimal objective function value
 
 # Example 2: Hymod
+\dontrun{
 data("BassRiver") # load Bass River hydrological data
 rgnOut = rgn(simFunc=simFunc_hymod,
              par=c(400.,0.5,0.1,0.2,0.1),
@@ -84,4 +87,6 @@ rgnOut = rgn(simFunc=simFunc_hymod,
              pet=BassRiverData$ET.mm)                           # PET input
 rgnOut$par #optimal parameters
 rgnOut$value #optimal objective function value
+}
+
 }
