@@ -74,7 +74,7 @@ rgnOut$par #optimal parameters
 rgnOut$value #optimal objective function value
 
 # Example 2: Hymod
-\dontrun{
+\donttest{
 data("BassRiver") # load Bass River hydrological data
 rgnOut = rgn(simFunc=simFunc_hymod,
              par=c(400.,0.5,0.1,0.2,0.1),

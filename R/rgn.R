@@ -31,7 +31,7 @@ setDefaultRgnConvergeSettings=function(iterMax=NULL, dump=NULL, logFile=NULL){
   cnvSet$noRelChangePar = 5
   cnvSet$tolSafe = 1.0e-14
   cnvSet$dumpResults = 0; if(PRESENT(dump)) cnvSet$dumpResults = dump
-  cnvSet$logFile = 'rgnLog.txt'; if(PRESENT(logFile)) cnvSet$logFile = logFile
+  cnvSet$logFile = paste0(tempdir(),'rgnLog.txt'); if(PRESENT(logFile)) cnvSet$logFile = logFile
   return(cnvSet)
 }
 
@@ -266,7 +266,7 @@ objFuncCall = function(simFunc,x,simTarget,weights,fixParVal=NULL,fixParLoc=NULL
 #' rgnOut$value #optimal objective function value
 #'
 #' # Example 2: Hymod
-#' \dontrun{
+#' \donttest{
 #' data("BassRiver") # load Bass River hydrological data
 #' rgnOut = rgn(simFunc=simFunc_hymod,
 #'              par=c(400.,0.5,0.1,0.2,0.1),
@@ -904,7 +904,7 @@ svdDecomp=function(a){
     nite = nite + 1
     if(err < EPS) break
   }
-  if(i>1000) print(paste("convergence issue, only achieved:",err))
+  if(i>1000) warning(paste("convergence issue, only achieved:",err))
   return(list(u=u, s=s, v=v, nite=nite))
 } #END svdDecomp
 
