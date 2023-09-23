@@ -42,11 +42,11 @@ For a CRAN submission we recommend that you fix all NOTEs, WARNINGs and ERRORs.
 
 ❯ On windows-x86_64-devel (r-devel)
   checking for detritus in the temp directory ... NOTE
-  Found the following files/directories:
     'lastMiKTeXException'
+  Found the following files/directories:
 
 ❯ On ubuntu-gcc-release (r-release)
-  checking CRAN incoming feasibility ... [6s/20s] NOTE
+  checking CRAN incoming feasibility ... [5s/14s] NOTE
   Maintainer: ‘David McInerney <dmcinern@gmail.com>’
   
   New submission
